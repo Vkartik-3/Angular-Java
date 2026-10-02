@@ -63,7 +63,7 @@ jobs:
           mkdir -p "$SITE/docs"
           cp -R docs/. "$SITE/docs/"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: apps/web/dist/demo/browser
 
