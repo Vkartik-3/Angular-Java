@@ -1,0 +1,104 @@
+{
+  "title": "ShopFlow — 3. Logs (Loki)",
+  "uid": "shopflow-logs",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "name": "corrId",
+        "label": "Correlation ID",
+        "description": "Paste the X-Correlation-ID from a response header to trace the full distributed flow",
+        "type": "textbox",
+        "current": { "selected": false, "text": "", "value": "" },
+        "hide": 0,
+        "options": [],
+        "query": "",
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+
+    { "id": 100, "type": "row", "title": "Distributed Trace", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 6, "type": "logs", "title": "Correlation ID Trace — ${corrId}",
+      "description": "Paste a Correlation ID from the X-Correlation-ID response header. Shows every log line from every service for that exact saga in chronological order.",
+      "gridPos": { "x": 0, "y": 1, "w": 24, "h": 12 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "dedupStrategy": "none", "showLabels": false, "showTime": true, "sortOrder": "Ascending", "wrapLogMessage": false },
+      "targets": [
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "{service=~\".+\", service!~\"loki|grafana\"} |= \"[corrId=${corrId}]\" != \"[corrId=]\"", "refId": "A" }
+      ]
+    },
+
+    { "id": 101, "type": "row", "title": "Live Log Streams", "gridPos": { "x": 0, "y": 13, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 3, "type": "logs", "title": "Orchestrator Logs (order-service)",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "dedupStrategy": "none", "showLabels": false, "showTime": true, "sortOrder": "Ascending", "wrapLogMessage": false },
+      "targets": [
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "{service=\"order-service\"} |= \"Saga\"", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4, "type": "logs", "title": "Gateway Logs",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "dedupStrategy": "none", "showLabels": false, "showTime": true, "sortOrder": "Ascending", "wrapLogMessage": false },
+      "targets": [
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "{service=\"gateway\"}", "refId": "A" }
+      ]
+    },
+
+    { "id": 102, "type": "row", "title": "Error Monitoring", "gridPos": { "x": 0, "y": 22, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 1, "type": "logs", "title": "ERROR Stream (all services)",
+      "gridPos": { "x": 0, "y": 23, "w": 16, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "dedupStrategy": "none", "showLabels": false, "showTime": true, "sortOrder": "Ascending", "wrapLogMessage": false },
+      "targets": [
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "{service=~\".+\", service!~\"loki|grafana\"} |= \" ERROR \"", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2, "type": "barchart", "title": "ERROR Count by Service",
+      "gridPos": { "x": 16, "y": 23, "w": 8, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "orientation": "auto", "groupWidth": 0.7, "barWidth": 0.97, "xTickLabelRotation": 0, "legend": { "showLegend": false } },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "fillOpacity": 80 }, "unit": "short" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by(service) (count_over_time({service=~\".+\", service!~\"loki|grafana|keycloak\"} |= \"ERROR\" [$__range]))",
+          "refId": "A", "instant": true, "legendFormat": "{{service}}"
+        }
+      ]
+    },
+
+    { "id": 103, "type": "row", "title": "Log Volume", "gridPos": { "x": 0, "y": 31, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 5, "type": "timeseries", "title": "Log Volume per Service",
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "short" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by(service) (rate({service=~\".+\"}[1m]))",
+          "refId": "A", "legendFormat": "{{service}}"
+        }
+      ]
+    }
+
+  ]
+}

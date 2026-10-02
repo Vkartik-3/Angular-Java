@@ -1,0 +1,57 @@
+# No env vars needed — %prod.* config already hardcodes order-service:8080,
+# inventory-service:8082, payment-service:8081, product-service:8084 and
+# keycloak:8080, matching these Service names/ports.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: shopflow
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      initContainers:
+        # quarkus-oidc performs OIDC discovery against keycloak at boot.
+        - name: wait-for-keycloak
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z keycloak 8080; do echo waiting for keycloak; sleep 2; done"]
+      containers:
+        - name: gateway
+          image: ghcr.io/vkartik-3/angular-java/gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8090
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          startupProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8090
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8090
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8090
+            periodSeconds: 5

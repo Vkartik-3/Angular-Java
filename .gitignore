@@ -1,0 +1,96 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Playwright MCP ###
+.playwright-mcp/
+
+### Frontend test artifacts ###
+apps/web/playwright-report/
+apps/web/test-results/
+
+### Kubernetes (Minikube) ###
+infra/k8s/secrets.yaml
+
+### Local credentials and private data ###
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kubeconfig
+kubeconfig
+.aws/
+.ssh/
+.kube/
+.codex/
+.agents/
+secrets.yaml
+secrets.yml
+credentials.json
+credentials.yaml
+credentials.yml
+service-account*.json
+*-credentials.json
+*.log
+*.dump
+*.backup
+*.sqlite
+*.sqlite3
+*.db
+*.har
+*.trace
+node_modules/
+coverage/
+playwright-report/
+test-results/
+.local/
+
+### Local tooling metadata ###
+.github/modernize/
+
+.npmrc
+.netrc
+secrets.json
+secrets.env
+*.tfstate
+*.tfstate.*
+*.tfvars

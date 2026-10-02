@@ -1,0 +1,181 @@
+<div class="page">
+  <h2 class="page-title">Admin Controls</h2>
+
+  <div class="card">
+    <p class="card-label"><i class="pi pi-database"></i> Product Catalogue</p>
+    <p class="card-hint">Import products from a CSV file. Replaces the entire catalogue on each import.</p>
+    <div>
+      <p class="card-hint">Sample files ready to import:</p>
+      <div class="sample-row">
+        <a href="/assets/sample-data/classic-rock.csv" download class="sample-link">
+          <i class="pi pi-download"></i> Classic Rock
+        </a>
+        <a href="/assets/sample-data/80s-rock.csv" download class="sample-link">
+          <i class="pi pi-download"></i> 80s Rock
+        </a>
+        <a href="/assets/sample-data/heavy-metal.csv" download class="sample-link">
+          <i class="pi pi-download"></i> Heavy Metal
+        </a>
+        <a href="/assets/sample-data/turntables.csv" download class="sample-link">
+          <i class="pi pi-download"></i> Turntables
+        </a>
+      </div>
+    </div>
+
+    <div class="format-guide">
+      <button class="guide-toggle" (click)="formatGuideOpen.set(!formatGuideOpen())">
+        <i class="pi" [class.pi-chevron-right]="!formatGuideOpen()" [class.pi-chevron-down]="formatGuideOpen()"></i>
+        Format guide
+      </button>
+      @if (formatGuideOpen()) {
+        <div class="guide-content">
+          <p class="guide-text">Required columns (turntable):</p>
+          <code class="guide-code">category,manufacturer,name,price,imageUrl</code>
+          <p class="guide-text">Required columns (vinyl):</p>
+          <code class="guide-code">category,artist,title,price,imageUrl</code>
+          <p class="guide-text">Example row:</p>
+          <code class="guide-code">vinyl,Pink Floyd,Animals,36.99,/assets/products/pf-animals.jpg</code>
+          <p class="guide-text">Image URL:</p>
+          <p class="guide-warn">
+            <i class="pi pi-info-circle"></i>
+            <code>imageUrl</code> must reference a file served under <code>/assets/products/</code>.<br>
+            External URLs are not supported. Use the sample files above as reference.
+          </p>
+        </div>
+      }
+    </div>
+
+    <div class="import-row">
+      <input #fileInput type="file" accept=".csv" class="hidden-input" (change)="onFileChange($event)" />
+      <p-button label="Choose CSV" icon="pi pi-upload" styleClass="csv-btn" (click)="fileInput.click()" />
+      <p-button label="Import" icon="pi pi-check" styleClass="btn-import"
+                [loading]="importing()" [disabled]="!selectedFile() || importing()"
+                (click)="importCatalogue()" />
+    </div>
+    @if (selectedFile()) {
+      <p class="file-name">{{ selectedFile()!.name }}</p>
+    }
+
+    @if (importResult()) {
+      <div class="import-status" [class.import-status--warn]="importResult()!.skipped > 0">
+        <i class="pi pi-check-circle"></i>
+        <span>Import complete —</span>
+        <span>Imported: <strong>{{ importResult()!.imported }}</strong></span>
+        @if (importResult()!.skipped > 0) {
+          <span>Skipped: <strong>{{ importResult()!.skipped }}</strong></span>
+        }
+      </div>
+      @if (importResult()!.skipped > 0) {
+        <div class="skipped-section">
+          <button class="guide-toggle" (click)="showSkipped.set(!showSkipped())">
+            <i class="pi" [class.pi-chevron-right]="!showSkipped()" [class.pi-chevron-down]="showSkipped()"></i>
+            Skipped rows
+          </button>
+          @if (showSkipped()) {
+            <ul class="skipped-list">
+              @for (r of importResult()!.skippedRecords; track r.identifier) {
+                <li><strong>{{ r.identifier }}</strong>: {{ r.reason }}</li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    }
+
+    @if (importError()) {
+      <div class="import-error">
+        <i class="pi pi-times-circle"></i>
+        <span>{{ importError() }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="card">
+    <p class="card-label"><i class="pi pi-shield"></i> Acceptance modes</p>
+    <p class="card-hint">Disable to force all requests to be rejected, regardless of order amount or inventory state.</p>
+    <div class="crash-row">
+      <div class="crash-item">
+        <span class="crash-label">Payment</span>
+        <p-toggleButton
+          [ngModel]="paymentAccept()"
+          onLabel="Accept Payments"
+          offLabel="Rejecting Payments"
+          onIcon="pi pi-check"
+          offIcon="pi pi-times"
+          [class]="paymentAccept() ? 'admin-toggle admin-toggle--wide admin-toggle--accept' : 'admin-toggle admin-toggle--wide admin-toggle--reject'"
+          (onChange)="setPaymentMode($event.checked)" />
+      </div>
+      <div class="crash-item">
+        <span class="crash-label">Inventory</span>
+        <p-toggleButton
+          [ngModel]="inventoryAccept()"
+          onLabel="Accept Orders"
+          offLabel="Rejecting Orders"
+          onIcon="pi pi-check"
+          offIcon="pi pi-times"
+          [class]="inventoryAccept() ? 'admin-toggle admin-toggle--wide admin-toggle--accept' : 'admin-toggle admin-toggle--wide admin-toggle--reject'"
+          (onChange)="setInventoryMode($event.checked)" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-label"><i class="pi pi-clock"></i> Saga step delay</p>
+    <p class="card-hint">Slow the saga down to make each status transition visible in the live timeline.</p>
+    <div class="delay-row">
+      <div class="delay-item">
+        <label class="delay-label">Payment</label>
+        <p-select
+          [options]="delayOptions"
+          [ngModel]="paymentDelay()"
+          (ngModelChange)="setPaymentDelay($event)"
+          optionLabel="label"
+          optionValue="value" />
+      </div>
+      <div class="delay-item">
+        <label class="delay-label">Inventory</label>
+        <p-select
+          [options]="delayOptions"
+          [ngModel]="inventoryDelay()"
+          (ngModelChange)="setInventoryDelay($event)"
+          optionLabel="label"
+          optionValue="value" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-label"><i class="pi pi-exclamation-triangle"></i> Failure simulations</p>
+    <p class="card-hint">Forces the consumer to throw on every message — triggers DLQ after 5 retries. Saga will time out.</p>
+    <div class="crash-row">
+      <div class="crash-item">
+        <span class="crash-label">Payment consumer</span>
+        <p-toggleButton
+          [ngModel]="paymentCrash()"
+          onLabel="OFF"
+          offLabel="ON"
+          onIcon="pi pi-times"
+          offIcon="pi pi-check"
+          [class]="paymentCrash() ? 'admin-toggle admin-toggle--reject' : 'admin-toggle admin-toggle--accept'"
+          (onChange)="setPaymentCrash($event.checked)" />
+        @if (paymentCrash()) {
+          <span class="crash-badge">CRASH</span>
+        }
+      </div>
+      <div class="crash-item">
+        <span class="crash-label">Inventory consumer</span>
+        <p-toggleButton
+          [ngModel]="inventoryCrash()"
+          onLabel="OFF"
+          offLabel="ON"
+          onIcon="pi pi-times"
+          offIcon="pi pi-check"
+          [class]="inventoryCrash() ? 'admin-toggle admin-toggle--reject' : 'admin-toggle admin-toggle--accept'"
+          (onChange)="setInventoryCrash($event.checked)" />
+        @if (inventoryCrash()) {
+          <span class="crash-badge">CRASH</span>
+        }
+      </div>
+    </div>
+  </div>
+</div>

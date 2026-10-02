@@ -1,0 +1,89 @@
+# Database credentials come from the local shopflow-secrets Secret.
+# POD_NAME gives each replica a unique SSE consumer group.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: shopflow
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      # Kubernetes has no equivalent of compose's `depends_on: condition:
+      # service_healthy`; these initContainers reproduce it so order-service
+      # doesn't crash-loop through Flyway/datasource failures while its
+      # dependencies are still starting.
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done"]
+        - name: wait-for-apicurio
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z apicurio-registry 8080; do echo waiting for apicurio-registry; sleep 2; done"]
+      containers:
+        - name: order-service
+          image: ghcr.io/vkartik-3/angular-java/order-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shopflow-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopflow-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # Overrides application.properties' app.outbox.batch-size=50, which is
+            # high enough that a single OutboxPublisherJob poll can drain the whole
+            # backlog from a small test run, leaving the other replica with nothing
+            # to compete for — see infra/k8s/README.md "Testing Concurrent Processing".
+            # Compose is unaffected; this only applies here.
+            - name: APP_OUTBOX_BATCH_SIZE
+              value: "5"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "384Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          # startupProbe covers slow JVM boot so liveness/readiness don't
+          # kill the container mid-startup, before Quarkus is up.
+          startupProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            periodSeconds: 5

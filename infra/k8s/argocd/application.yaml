@@ -1,0 +1,29 @@
+# Scoped to infra/k8s/app/ only, deliberately — not the whole infra/k8s/ tree. database/,
+# messaging/, auth/ and observability/ are applied by start.sh in a staged,
+# dependency-ordered rollout (avoids the CPU-contention crash loops a
+# big-bang apply caused during initial testing); a second continuous
+# reconciler targeting the same resources would race with that. Several of
+# those tiers also depend on ConfigMaps start.sh generates from source files
+# at deploy time (prometheus-config, keycloak-realm, postgres-init, ...) —
+# they're deliberately not committed as YAML, so ArgoCD watching those
+# directories would show permanently degraded Applications. Nothing in
+# infra/k8s/app/ has either problem: it has no cross-tier apply ordering
+# requirement, and no Deployment here depends on a generated ConfigMap.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shopflow-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Vkartik-3/Angular-Java.git
+    targetRevision: main
+    path: infra/k8s/app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: shopflow
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

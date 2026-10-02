@@ -1,0 +1,35 @@
+# discovery.kubernetes (role=pod) needs the API server to list/watch pods in
+# the shopflow namespace. The original v2 sketch didn't account for this —
+# without it, Alloy's log collection silently sees no targets.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: shopflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: alloy-pod-reader
+  namespace: shopflow
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alloy-pod-reader
+  namespace: shopflow
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: shopflow
+roleRef:
+  kind: Role
+  name: alloy-pod-reader
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,83 @@
+# Matches docker-compose.yml: default dev store (no external DB — Postgres
+# wiring was in the original draft but compose never uses it, and the
+# database it pointed at doesn't exist), start-dev --import-realm, with
+# infra/keycloak/shopflow-realm.json mounted so the shopflow realm/clients/roles
+# are present. The realm ConfigMap is generated from that same source file —
+# see infra/k8s/README.md "Manual Deployment" — so it can't drift from the Compose
+# version.
+#
+# Not exposed via Ingress. order-/payment-/inventory-service and the
+# frontend all have "http://localhost:8180" hardcoded (JWT issuer / built-in
+# Angular config) matching compose's published port mapping. Reproduce that
+# on Minikube with:
+#   kubectl port-forward svc/keycloak 8180:8080 -n shopflow
+# rather than fighting Keycloak's issuer-matches-request-host behavior behind
+# an Ingress subpath.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: shopflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.2
+          args:
+            - start-dev
+            - --import-realm
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: shopflow-secrets
+                  key: KEYCLOAK_ADMIN
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopflow-secrets
+                  key: KEYCLOAK_ADMIN_PASSWORD
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          # startupProbe covers the slow first boot (realm import took ~100s
+          # observed) so liveness/readiness don't kill the container
+          # mid-import, before it's up.
+          startupProbe:
+            httpGet:
+              path: /realms/master
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: 8080
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /realms/master
+              port: 8080
+            periodSeconds: 15
+      volumes:
+        - name: realm-import
+          configMap:
+            name: keycloak-realm

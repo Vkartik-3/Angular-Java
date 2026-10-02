@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "InventoryRequestEvent",
+  "namespace": "com.example.order.events.avro",
+  "fields": [
+    { "name": "eventId",       "type": "string" },
+    { "name": "orderId",       "type": "string" },
+    { "name": "correlationId", "type": "string" }
+  ]
+}

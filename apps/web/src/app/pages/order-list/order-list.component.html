@@ -1,0 +1,51 @@
+<div class="page">
+  <p-toolbar>
+    <ng-template pTemplate="start">
+      <h2 class="page-title">Orders</h2>
+    </ng-template>
+    <ng-template pTemplate="end">
+      <p-button label="New Order" icon="pi pi-plus" (click)="newOrder()" styleClass="w-full btn-new-order" />
+    </ng-template>
+  </p-toolbar>
+
+  <p-table [value]="orders()" [loading]="loading()" [paginator]="true" [rows]="10"
+           sortField="createdAt" [sortOrder]="-1">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Order ID</th>
+        <th>Customer</th>
+        <th>Status</th>
+        <th pSortableColumn="createdAt" style="width: 180px">
+          Created <p-sortIcon field="createdAt" />
+        </th>
+        <th style="width: 90px">Items</th>
+        <th style="width: 100px">Total</th>
+        <th style="width: 90px"></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7">No orders found.</td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-order>
+      <tr>
+        <td>
+          <span [pTooltip]="order.id" tooltipPosition="top" style="cursor:default">
+            {{ order.id | slice:0:13 }}…
+          </span>
+        </td>
+        <td>{{ order.username }}</td>
+        <td>
+          <p-tag [value]="order.status | statusLabel" [severity]="getSeverity(order.status)" />
+        </td>
+        <td>{{ order.createdAt | date:'yyyy-MM-dd HH:mm' }}</td>
+        <td>{{ totalItems(order.items) }}</td>
+        <td>{{ order.total | number:'1.2-2' }}</td>
+        <td>
+          <p-button label="View" severity="secondary" size="small" (click)="view(order.id)" />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

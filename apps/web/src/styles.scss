@@ -1,0 +1,102 @@
+@import 'primeicons/primeicons.css';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* PrimeNG appends overlay containers directly to <body>.
+   The container itself must not block pointer events — only
+   the actual overlay content (messages, panels) should. */
+.p-tag {
+  font-weight: 500 !important;
+}
+
+.p-tag.p-tag-secondary {
+  background: #dde3eb !important;
+  color: #64748b !important;
+}
+
+.p-tooltip {
+  max-width: none !important;
+}
+
+.p-tooltip .p-tooltip-text {
+  font-size: 0.8rem;
+  white-space: nowrap !important;
+  max-width: none !important;
+  overflow: visible;
+  padding: 0.25rem 0.5rem;
+}
+
+.p-datatable-column-sorted {
+  background: #ffffff !important;
+  color: #334155 !important;
+
+  svg {
+    color: #334155 !important;
+  }
+}
+
+.p-paginator-page {
+  min-width: 2rem !important;
+  height: 2rem !important;
+  font-size: 0.8rem !important;
+
+  &.p-paginator-page-selected {
+    background: #e9eef4 !important;
+    color: #334155 !important;
+    border-color: transparent !important;
+  }
+}
+
+.admin-toggle--accept,
+.admin-toggle--reject {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+
+  .p-togglebutton-content {
+    background: transparent !important;
+  }
+
+  &:hover {
+    background: #cbd5e1 !important;
+    border-color: #b8c4d6 !important;
+  }
+}
+
+.admin-toggle--accept .p-togglebutton-label,
+.admin-toggle--accept .p-togglebutton-icon {
+  color: #16a34a !important;
+}
+
+.admin-toggle--reject .p-togglebutton-label,
+.admin-toggle--reject .p-togglebutton-icon {
+  color: #dc2626 !important;
+}
+
+.admin-toggle .p-togglebutton-content {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+}
+
+.admin-toggle--wide .p-togglebutton-content {
+  justify-content: center;
+  min-width: 10rem;
+}
+
+.p-toast,
+.p-overlay-container {
+  pointer-events: none;
+
+  .p-toast-message,
+  .p-component {
+    pointer-events: auto;
+  }
+}

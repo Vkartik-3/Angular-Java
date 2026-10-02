@@ -1,0 +1,86 @@
+# product-service is Spring Boot, not Quarkus — needs different env vars than
+# the other services (matches docker-compose.yml's overrides of its hardcoded
+# localhost defaults in application.properties):
+#   SPRING_MONGODB_URI
+#   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
+#
+# All three probes use /actuator/health, not the split liveness/readiness
+# paths: SecurityConfig.java only permits "/actuator/health" and
+# "/actuator/prometheus", not "/actuator/health/**", so enabling the split
+# (MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true) 401'd those sub-paths in
+# testing. Real fix is widening the security matcher — out of scope here.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: shopflow
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      initContainers:
+        - name: wait-for-mongo
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mongo 27017; do echo waiting for mongo; sleep 2; done"]
+      containers:
+        - name: product-service
+          image: ghcr.io/vkartik-3/angular-java/product-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_MONGODB_HOST
+              value: mongo
+            - name: SPRING_MONGODB_DATABASE
+              value: product
+            - name: SPRING_MONGODB_AUTHENTICATION_DATABASE
+              value: admin
+            - name: SPRING_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: shopflow-secrets
+                  key: MONGO_USER
+            - name: SPRING_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopflow-secrets
+                  key: MONGO_PASSWORD
+            - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
+              value: http://keycloak:8080/realms/shopflow/protocol/openid-connect/certs
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "384Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          # startupProbe covers slow JVM boot (~30-45s observed) so liveness/
+          # readiness don't kill the container mid-startup, before Spring
+          # Boot is up.
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            periodSeconds: 5

@@ -1,0 +1,32 @@
+{
+  "realm": "shopflow",
+  "enabled": true,
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "shopflow-app",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Regular customer"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator"
+      }
+    ]
+  }
+}

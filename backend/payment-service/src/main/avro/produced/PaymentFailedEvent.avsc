@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "PaymentFailedEvent",
+  "namespace": "com.example.order.events.avro",
+  "fields": [
+    { "name": "eventId",       "type": "string" },
+    { "name": "orderId",       "type": "string" },
+    { "name": "reason",        "type": ["null", "string"], "default": null },
+    { "name": "correlationId", "type": "string" }
+  ]
+}

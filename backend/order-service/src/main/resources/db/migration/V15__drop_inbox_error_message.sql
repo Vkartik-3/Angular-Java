@@ -1,0 +1,1 @@
+ALTER TABLE inbox_event DROP COLUMN IF EXISTS error_message;

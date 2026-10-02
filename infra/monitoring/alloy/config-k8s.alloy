@@ -1,0 +1,46 @@
+// Kubernetes/Minikube variant of config.alloy. Uses discovery.kubernetes +
+// loki.source.kubernetes instead of the Docker-socket-based discovery.docker
+// the compose version uses. Requires the alloy ServiceAccount RBAC in
+// alloy-rbac.yaml.
+
+discovery.kubernetes "pods" {
+  role = "pod"
+  namespaces {
+    names = ["shopflow"]
+  }
+}
+
+discovery.relabel "pods" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+}
+
+loki.source.kubernetes "pods" {
+  targets    = discovery.relabel.pods.output
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

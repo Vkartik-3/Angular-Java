@@ -1,0 +1,84 @@
+<div class="page">
+  <h2 class="page-title">Vinyl Shop</h2>
+
+  <div class="shop-layout">
+
+    <div class="catalog">
+      @if (products() === null) {
+        <div class="skeleton-grid">
+          @for (_ of [1, 2, 3]; track $index) {
+            <div class="skeleton-card">
+              <div class="skeleton-img"></div>
+              <div class="skeleton-line skeleton-line--wide"></div>
+              <div class="skeleton-line skeleton-line--narrow"></div>
+              <div class="skeleton-line skeleton-line--btn"></div>
+            </div>
+          }
+        </div>
+      } @else if (products()!.length === 0) {
+        <div class="spinner-wrap">
+          <i class="pi pi-inbox" style="font-size: 2.5rem; color: #94a3b8"></i>
+          <p>No products yet — import a catalogue from the <a routerLink="/admin">Admin</a> page.</p>
+        </div>
+      } @else {
+        <p-carousel [value]="products()!" [numVisible]="3" [numScroll]="1" [circular]="true"
+                    [responsiveOptions]="responsiveOptions">
+          <ng-template let-product pTemplate="item">
+            <div class="product-card">
+              <div class="product-img-wrap">
+                <img [ngSrc]="product.imageUrl" [alt]="product | productDisplayName" fill sizes="(max-width: 768px) 90vw, 30vw" />
+              </div>
+              <div class="product-info">
+                <p class="album">{{ product | productDisplayName }}</p>
+                <p class="price">{{ product.price | number:'1.2-2' }} USD</p>
+              </div>
+              <p-button label="Add to Cart" icon="pi pi-shopping-cart" styleClass="w-full btn-add-cart"
+                        (click)="cartService.add(product)" />
+            </div>
+          </ng-template>
+        </p-carousel>
+      }
+    </div>
+
+    <div class="cart-panel">
+      <p-card header="Cart">
+        @if (cartService.cart().length === 0) {
+          <div class="empty-cart">
+            <i class="pi pi-shopping-cart"></i>
+            <p>Your cart is empty</p>
+          </div>
+        } @else {
+          @for (item of cartService.cart(); track item.product.id) {
+            <div class="cart-item">
+              <img [ngSrc]="item.product.imageUrl" [alt]="item.product | productDisplayName" width="44" height="44" />
+              <div class="item-info">
+                <p class="item-name">{{ item.product | productDisplayName }}</p>
+                <p class="item-price">{{ item.product.price | number:'1.2-2' }} USD</p>
+              </div>
+              <div class="qty-control">
+                <p-button icon="pi pi-minus" size="small" severity="secondary"
+                          (click)="cartService.setQuantity(item.product.id, item.quantity - 1)" />
+                <span>{{ item.quantity }}</span>
+                <p-button icon="pi pi-plus" size="small" severity="secondary"
+                          (click)="cartService.setQuantity(item.product.id, item.quantity + 1)" />
+              </div>
+              <p-button icon="pi pi-trash" severity="danger" size="small"
+                        (click)="cartService.remove(item.product.id)" />
+            </div>
+          }
+
+          <div class="cart-footer">
+            <div class="total-row">
+              <span>Total</span>
+              <span>{{ cartService.total() | number:'1.2-2' }} USD</span>
+            </div>
+            <p-button label="Place Order" icon="pi pi-check" styleClass="w-full btn-add-cart"
+                      [loading]="submitting()" [disabled]="submitting()"
+                      (click)="submit()" />
+          </div>
+        }
+      </p-card>
+    </div>
+
+  </div>
+</div>

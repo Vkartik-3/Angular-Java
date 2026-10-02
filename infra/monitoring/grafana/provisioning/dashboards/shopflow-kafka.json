@@ -1,0 +1,64 @@
+{
+  "title": "ShopFlow — 2. Kafka & Messaging",
+  "uid": "shopflow-kafka",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "browser",
+  "panels": [
+
+    { "id": 100, "type": "row", "title": "Kafka Event Counters", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 1, "type": "stat", "title": "Payments Accepted",
+      "gridPos": { "x": 0, "y": 1, "w": 6, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "unit": "short" } },
+      "targets": [{ "expr": "payments_processed_total{job=\"payment-service\",result=\"accepted\"}", "legendFormat": "accepted" }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Payments Rejected",
+      "gridPos": { "x": 6, "y": 1, "w": 6, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short" } },
+      "targets": [{ "expr": "payments_processed_total{job=\"payment-service\",result=\"rejected\"}", "legendFormat": "rejected" }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Inventory Approved",
+      "gridPos": { "x": 12, "y": 1, "w": 6, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "unit": "short" } },
+      "targets": [{ "expr": "inventory_requests_total{job=\"inventory-service\",result=\"approved\"}", "legendFormat": "approved" }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "Inventory Rejected",
+      "gridPos": { "x": 18, "y": 1, "w": 6, "h": 4 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short" } },
+      "targets": [{ "expr": "inventory_requests_total{job=\"inventory-service\",result=\"rejected\"}", "legendFormat": "rejected" }]
+    },
+
+    { "id": 101, "type": "row", "title": "Kafka Result Rates", "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 5, "type": "timeseries", "title": "Payment Acceptance Rate",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "options": { "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "custom": { "lineWidth": 2 }, "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [
+        { "expr": "100 * sum(payments_processed_total{job=\"payment-service\",result=\"accepted\"}) / sum(payments_processed_total{job=\"payment-service\"})", "legendFormat": "acceptance %" }
+      ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Inventory Approval Rate",
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+      "options": { "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "custom": { "lineWidth": 2 }, "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [
+        { "expr": "100 * sum(inventory_requests_total{job=\"inventory-service\",result=\"approved\"}) / sum(inventory_requests_total{job=\"inventory-service\"})", "legendFormat": "approval %" }
+      ]
+    }
+
+  ]
+}

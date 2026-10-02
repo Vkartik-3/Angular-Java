@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "PaymentRequestEvent",
+  "namespace": "com.example.order.events.avro",
+  "fields": [
+    { "name": "eventId",       "type": "string" },
+    { "name": "orderId",       "type": "string" },
+    { "name": "customerId",    "type": "string" },
+    { "name": "amount",        "type": "string" },
+    { "name": "correlationId", "type": "string" }
+  ]
+}

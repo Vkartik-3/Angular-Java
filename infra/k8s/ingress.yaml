@@ -1,0 +1,39 @@
+# NOTE: routing works correctly, but OAuth2/PKCE login requires HTTPS
+# (a secure context) — browsers block the Web Crypto API on plain HTTP
+# non-localhost hosts. Not used for local development; see infra/k8s/README.md.
+# Keycloak deliberately has no Ingress route either way — see
+# infra/k8s/auth/keycloak-deployment.yaml. Reach the app via:
+#   kubectl port-forward svc/frontend 4200:80 -n shopflow
+#   kubectl port-forward svc/keycloak 8180:8080 -n shopflow
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopflow-ingress
+  namespace: shopflow
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shopflow.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8090
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

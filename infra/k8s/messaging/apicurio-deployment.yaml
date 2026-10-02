@@ -1,0 +1,50 @@
+# Same image/config as docker-compose.yml — in-memory (dev profile) storage,
+# not the kafkasql backend. Keeps parity with what's already proven to work
+# and avoids a hard startup-order dependency on Kafka.
+#
+# Service is named "apicurio-registry" (not "apicurio") on purpose: order-,
+# payment- and inventory-service have http://apicurio-registry:8080 hardcoded
+# as their %prod schema registry URL, so matching the docker-compose service
+# name means zero env var overrides are needed in those services.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-registry
+  namespace: shopflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry
+    spec:
+      containers:
+        - name: apicurio-registry
+          image: quay.io/apicurio/apicurio-registry:3.1.7
+          ports:
+            - containerPort: 8080
+          env:
+            - name: QUARKUS_PROFILE
+              value: dev
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10

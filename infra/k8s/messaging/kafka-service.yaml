@@ -1,0 +1,32 @@
+# Headless (clusterIP: None) on purpose. Kafka's controller (KRaft) traffic
+# is self-referential — the broker connects to its own controller listener
+# via KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka:9093 — and a pod reaching
+# itself through a normal Service's ClusterIP needs hairpin NAT, which
+# minikube's basic bridge CNI doesn't reliably provide. That produced an
+# infinite "Connection to node 0 (kafka/<clusterIP>:9093) could not be
+# established" crash loop in testing. Headless DNS resolves "kafka" straight
+# to the pod's real IP instead of a virtual one, sidestepping hairpin
+# entirely — this is also the documented pattern for a StatefulSet's
+# governing Service. order-/payment-/inventory-service's hardcoded
+# kafka:9092 keep working unchanged; this only changes how the name resolves.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: shopflow
+spec:
+  clusterIP: None
+  # Without this, DNS only publishes a pod once it's Ready — but Kafka can't
+  # become Ready until it resolves and reaches itself via "kafka:9093" during
+  # controller registration. That circular dependency produced
+  # "UnknownHostException: kafka" on startup in testing.
+  publishNotReadyAddresses: true
+  selector:
+    app: kafka
+  ports:
+    - name: broker
+      port: 9092
+      targetPort: 9092
+    - name: controller
+      port: 9093
+      targetPort: 9093

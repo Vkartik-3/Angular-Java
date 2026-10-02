@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN user_name VARCHAR(255);
+UPDATE orders SET user_name = 'user1' WHERE user_id = '00000000-0000-0000-0000-000000000001';

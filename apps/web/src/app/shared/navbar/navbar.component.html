@@ -1,0 +1,13 @@
+<nav class="navbar">
+  <a class="brand" routerLink="/orders">ShopFlow</a>
+  <div class="nav-links">
+    <p-button label="Orders" icon="pi pi-list" severity="secondary" size="small" styleClass="btn-orders" routerLink="/orders" />
+  </div>
+  <div class="nav-actions">
+    <span class="username">Logged in as: {{ auth.username }}</span>
+    @if (auth.hasRole('admin')) {
+      <p-button label="Admin" icon="pi pi-shield" severity="secondary" size="small" styleClass="btn-admin" routerLink="/admin" />
+    }
+    <p-button label="Logout" icon="pi pi-sign-out" severity="secondary" size="small" (click)="auth.logout()" />
+  </div>
+</nav>
