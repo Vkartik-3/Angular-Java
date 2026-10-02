@@ -9,8 +9,8 @@ Angular · Quarkus · Spring Boot · Kafka · Avro · PostgreSQL · MongoDB · K
 [![Pages](https://github.com/Vkartik-3/Angular-Java/actions/workflows/pages.yml/badge.svg)](https://github.com/Vkartik-3/Angular-Java/actions/workflows/pages.yml)
 <br>
 ![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)
-![Quarkus](https://img.shields.io/badge/Quarkus-3.33-4695EB?logo=quarkus&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.6-6DB33F?logo=springboot&logoColor=white)
+![Quarkus](https://img.shields.io/badge/Quarkus-3.39-4695EB?logo=quarkus&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?logo=springboot&logoColor=white)
 ![Kafka](https://img.shields.io/badge/Kafka-4.1.1-231F20?logo=apachekafka&logoColor=white)
 ![Avro](https://img.shields.io/badge/Avro-1.12.1-critical)
 ![Apicurio](https://img.shields.io/badge/Apicurio-3.1.7-orangered)
@@ -548,8 +548,8 @@ graph LR
 
 | Layer | Technology |
 |---|---|
-| Services | Java 25, Quarkus 3.33, Spring Boot 4.0.6, Spring Batch 6 |
-| Frontend | Angular 21, PrimeNG 21, RxJS, Vitest, Playwright, nginx |
+| Services | Java 25, Quarkus 3.39, Spring Boot 4.1.1, Spring Batch 6 |
+| Frontend | Angular 21.2, PrimeNG 21, RxJS, Vitest, Playwright, nginx |
 | Messaging | Apache Kafka 4.1.1, SmallRye Reactive Messaging, Avro 1.12.1, Apicurio Registry 3.1.7 |
 | Persistence | PostgreSQL 18, Hibernate ORM Panache, Flyway, MongoDB 8, Spring Data MongoDB |
 | Resilience | MicroProfile Fault Tolerance |
