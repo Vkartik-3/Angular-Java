@@ -104,12 +104,116 @@ jobs:
             echo "No tests found, skipping"
           fi
 
+  e2e:
+    name: e2e (full stack + Playwright)
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    timeout-minutes: 30
+    env:
+      # Throwaway credentials for an ephemeral CI stack; never used outside this job.
+      POSTGRES_PASSWORD: ci-postgres-pw
+      MONGO_PASSWORD: ci-mongo-pw
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ci-keycloak-pw
+      GRAFANA_ADMIN_PASSWORD: ci-grafana-pw
+      KEYCLOAK_URL: http://localhost:8180
+      E2E_ADMIN_USERNAME: e2e-admin
+      E2E_ADMIN_PASSWORD: e2e-admin-pw
+      E2E_USER_USERNAME: e2e-user
+      E2E_USER_PASSWORD: e2e-user-pw
+      APP_SERVICES: >-
+        kafka apicurio-registry postgres mongo keycloak
+        order-service payment-service inventory-service product-service gateway frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore compiled artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            backend/order-service/target/quarkus-app/
+            backend/payment-service/target/quarkus-app/
+            backend/inventory-service/target/quarkus-app/
+            backend/gateway/target/quarkus-app/
+            backend/product-service/target/
+          key: compiled-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Start application stack
+        run: docker compose up -d --build $APP_SERVICES
+
+      - name: Wait for services to become ready
+        run: |
+          wait_for() {
+            for _ in $(seq 1 120); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$1" || true)
+              [ "$code" = "$2" ] && { echo "ready: $1 ($code)"; return 0; }
+              sleep 3
+            done
+            echo "::error::timed out waiting for $1 (last status $code)"; return 1
+          }
+          wait_for http://localhost:8180/realms/groove 200
+          wait_for http://localhost:8080/q/health/ready 200
+          wait_for http://localhost:8081/q/health/ready 200
+          wait_for http://localhost:8082/q/health/ready 200
+          wait_for http://localhost:8084/actuator/health 200
+          wait_for http://localhost:8090/api/orders 401
+          wait_for http://localhost:4200/ 200
+
+      - name: Provision test users
+        run: |
+          scripts/keycloak-create-user.sh "$E2E_USER_USERNAME" "$E2E_USER_PASSWORD" user
+          scripts/keycloak-create-user.sh "$E2E_ADMIN_USERNAME" "$E2E_ADMIN_PASSWORD" user admin
+
+      - name: Smoke test the API with a real token
+        run: |
+          TOKEN=$(curl -fsS "$KEYCLOAK_URL/realms/groove/protocol/openid-connect/token" \
+            -d grant_type=password -d client_id=groove-app \
+            --data-urlencode "username=$E2E_USER_USERNAME" --data-urlencode "password=$E2E_USER_PASSWORD" | jq -r .access_token)
+          echo "products: $(curl -fsS http://localhost:8090/api/products -H "Authorization: Bearer $TOKEN" | jq length)"
+          echo "orders:   $(curl -fsS http://localhost:8090/api/orders -H "Authorization: Bearer $TOKEN" | jq length)"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "http://localhost:8090/api/payment/mode?accept=false" -H "Authorization: Bearer $TOKEN")
+          [ "$code" = "403" ] || { echo "::error::non-admin reached an admin endpoint (HTTP $code)"; exit 1; }
+          echo "admin endpoint correctly forbidden for role 'user'"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Playwright
+        working-directory: apps/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright suite
+        working-directory: apps/web
+        run: npx playwright test
+
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=150 $APP_SERVICES
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
+
   docker-push:
     permissions:
       contents: read
       packages: write
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
+    needs: [build-backend, build-frontend, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_DOCKER_PUBLISH == 'true'
     steps:
       - uses: actions/checkout@v4
