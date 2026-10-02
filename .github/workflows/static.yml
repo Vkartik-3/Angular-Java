@@ -2,7 +2,7 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
+  # Automatic publishing is opt-in after Pages is configured for Actions.
   push:
     branches: ["main"]
 
@@ -24,6 +24,7 @@ concurrency:
 jobs:
   # Single deploy job since we're just deploying
   deploy:
+    if: github.event_name == 'workflow_dispatch' || vars.ENABLE_PAGES_DEPLOY == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -36,7 +37,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
+          # Publish the documentation directory.
           path: './docs'
       - name: Deploy to GitHub Pages
         id: deployment

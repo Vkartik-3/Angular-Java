@@ -596,3 +596,5 @@ npx playwright show-report     # open HTML report after a run
 - [x] **GitOps deployment with ArgoCD** — CI pins each build's image tag into the app-tier manifests and pushes the commit; ArgoCD watches `infra/k8s/app/` and reconciles the cluster to match, with the UI and auto-sync enabled
 
 Docker image publishing is opt-in: set the repository variable `ENABLE_DOCKER_PUBLISH=true`, grant GitHub Actions package-write permission before enabling it.
+
+Documentation publishing is opt-in. Configure the repository's **Settings → Pages → Source** to **GitHub Actions**, then set the repository variable `ENABLE_PAGES_DEPLOY=true` for deployment on pushes. You can also run the Pages workflow manually after configuring Pages. Build and test CI runs without Pages enabled.
