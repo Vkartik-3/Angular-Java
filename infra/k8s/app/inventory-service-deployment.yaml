@@ -31,6 +31,14 @@ spec:
         - name: inventory-service
           image: ghcr.io/vkartik-3/angular-java/inventory-service:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - containerPort: 8082
           resources:

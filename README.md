@@ -117,9 +117,11 @@ Every figure below was measured from this repository or its build output.
 | Avro event schemas | **8**, registered in Apicurio Schema Registry |
 | REST endpoints at the gateway | **19** |
 | Flyway migrations (order-service) | **21** |
-| Kubernetes manifests | **36** |
+| Kubernetes manifests | **41**, schema-validated in CI (kubeconform, strict) |
 | Grafana dashboards / panels | **4** dashboards, **32** panels, provisioned as code |
 | Custom Micrometer metrics | **14** business metrics (saga outcomes, duration, outbox lag, inbox duplicates, imports) |
+| Prometheus alert rules | **8** (availability, error rate, latency, outbox backlog, saga timeouts / failures / slowness, DLQ) |
+| Autoscaling | HPA: order-service **2–5** pods, gateway **1–4** pods at 70 % CPU · PDB keeps ≥ 1 orchestrator up |
 | Java source | **119** files, **5,630** lines |
 | Frontend source (TS / HTML / SCSS) | **2,050** / **623** / **1,612** lines |
 
@@ -130,8 +132,11 @@ Every figure below was measured from this repository or its build output.
 | Automated tests | **106** total |
 | Backend tests | **78** (order 46 · product 25 · payment 4 · inventory 3) |
 | Frontend unit tests | **25** (saga planner, compensation, idempotency, CSV validation, step projection, cart) |
-| Browser E2E scenarios | **3** Playwright tests against the full stack |
+| Browser E2E scenarios | **3** Playwright tests + an RBAC smoke test, run **in CI on every push** against an 11-container stack |
 | Integration infrastructure | Testcontainers: PostgreSQL, Kafka, Apicurio, MongoDB |
+| E2E results (CI) | **3 / 3 passing** · happy-path saga 12.1 s · compensation saga 14.1 s · suite 30.3 s, browser to Kafka to PostgreSQL and back |
+| Known dependency vulnerabilities | **0** (`npm audit`, enforced in CI at `high`) · Dependabot weekly for npm, Maven, Actions, Docker |
+| CI quality gates | **7**: build, unit/integration tests, dependency audit, K8s schema, promtool, `nginx -t`, full-stack E2E |
 
 ### Frontend performance
 
@@ -309,7 +314,8 @@ Every saga topic has a `<topic>-dlq`. Messages are keyed by `orderId`, so all ev
 - **Secrets.** Credentials come from `.env` (Compose) or a Kubernetes `Secret`. The repository holds only templates, and Compose refuses to start when a required secret is missing.
 - **Network exposure.** Every Compose port binds to `127.0.0.1`. Grafana gives anonymous users read-only access, and admin access needs a password.
 - **Edge hardening (nginx).** `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, hidden server tokens, gzip, immutable caching for hashed bundles and `no-cache` for the SPA shell.
-- **Containers.** All Java services run as non-root users. All infrastructure images are pinned to explicit versions.
+- **Containers.** All Java services run as UID 1001. In Kubernetes they also run with `runAsNonRoot`, `allowPrivilegeEscalation: false`, all Linux capabilities dropped and the `RuntimeDefault` seccomp profile. Infrastructure images are pinned to explicit versions.
+- **Supply chain.** `npm audit` gates CI at `high` (currently 0 findings), and Dependabot opens grouped weekly updates for npm, Maven, GitHub Actions and Docker base images.
 
 ---
 
@@ -332,6 +338,19 @@ Every saga topic has a `<topic>-dlq`. Messages are keyed by `orderId`, so all ev
 | System Health | 11 | Outbox lag, inbox duplicates, DLQ counts, JVM heap and GC, gateway error rate |
 
 On the full stack, each order page links to Grafana, pre-filtered to that order's correlation ID.
+
+**Alerting.** [`infra/monitoring/prometheus/alerts.yml`](infra/monitoring/prometheus/alerts.yml) defines 8 rules, validated by `promtool` in CI:
+
+| Alert | Severity | Fires when |
+|---|---|---|
+| `ServiceDown` | critical | a scrape target is down for 1 min |
+| `GatewayHighErrorRate` | critical | > 5 % of gateway requests return 5xx over 5 min |
+| `GatewayHighLatency` | warning | mean gateway latency > 1 s for 10 min (SSE excluded) |
+| `OutboxBacklog` | warning | > 100 unpublished outbox events for 5 min |
+| `SagaTimeouts` | warning | any saga hits its step deadline |
+| `SagaFailureRateHigh` | warning | > 25 % of sagas cancelled over 15 min |
+| `SagaSlow` | warning | mean completed-saga duration > 20 s |
+| `MessagesInDeadLetterQueue` | warning | any message lands in a `*-dlq` topic |
 
 ---
 
@@ -432,7 +451,15 @@ All ports bind to the loopback interface only:
 | Grafana | 3000 |
 | Prometheus | 9090 |
 
-**Create users:** sign in to the Keycloak admin console with `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD`, open the `groove` realm, and create users with your own passwords. Give customers the `user` role, and administrators both `user` and `admin`. The realm import contains no users or passwords.
+**Create users.** The realm import ships with no users or passwords. Create them with the provisioning script, which uses the Keycloak admin API:
+
+```bash
+export KEYCLOAK_URL=<Keycloak base URL> KEYCLOAK_ADMIN_PASSWORD=<from .env>
+scripts/keycloak-create-user.sh alice '<password>' user          # customer
+scripts/keycloak-create-user.sh bob   '<password>' user admin    # administrator
+```
+
+You can also create users in the Keycloak admin console under the `groove` realm.
 
 | Variable | Purpose |
 |---|---|
@@ -447,7 +474,7 @@ All ports bind to the loopback interface only:
 
 ## Kubernetes and GitOps
 
-The full stack runs on Minikube from plain manifests in `infra/k8s/`. It includes Services and DNS discovery, ConfigMaps and Secrets, startup, liveness and readiness probes, resource requests and limits, StatefulSets for Kafka and the databases, and a two-replica `order-service` with zero-downtime rolling updates.
+The full stack runs on Minikube from plain manifests in `infra/k8s/`. It includes Services and DNS discovery, ConfigMaps and Secrets, startup, liveness and readiness probes, resource requests and limits, StatefulSets for Kafka and the databases, hardened pod security contexts, HorizontalPodAutoscalers (order-service 2–5, gateway 1–4), a PodDisruptionBudget, and zero-downtime rolling updates.
 
 ```bash
 cp infra/k8s/secrets.yaml.template infra/k8s/secrets.yaml   # fill in credentials
@@ -469,7 +496,7 @@ cp infra/k8s/secrets.yaml.template infra/k8s/secrets.yaml   # fill in credential
 | Frontend unit | 25 | Saga planner for every outcome, step delays, idempotency, cancel compensation, CSV rules, pipeline projection, cart | `cd apps/web && npm test -- --watch=false` |
 | E2E (Playwright) | 3 | Happy path, compensation path, unauthenticated redirect, against the full stack | `cd apps/web && npm run e2e` |
 
-The E2E suite needs the full stack running and the `E2E_*` variables set. It is not part of CI.
+In CI, the `e2e` job starts the stack with Docker Compose, provisions users through the Keycloak admin API ([`scripts/keycloak-create-user.sh`](scripts/keycloak-create-user.sh)), checks that a `user` token gets `403` from an admin endpoint, and then runs the Playwright suite. The HTML report is uploaded as a build artifact. Image publishing is blocked unless E2E passes.
 
 ---
 
@@ -477,13 +504,15 @@ The E2E suite needs the full stack running and the `E2E_*` variables set. It is 
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| [`ci.yml`](.github/workflows/ci.yml) | push / PR to `main` | Build and test all five services (Java 25), build and test the frontend, validate the nginx config, then *(opt-in)* publish six images to GHCR and pin their SHAs into the K8s manifests |
+| [`ci.yml`](.github/workflows/ci.yml) | push / PR to `main` | Build and test all five services (Java 25). Build, test and audit the frontend. Validate K8s manifests, Prometheus rules, nginx and Compose. Run full-stack E2E. Then *(opt-in)* publish six images to GHCR and pin their SHAs into the K8s manifests |
 | [`pages.yml`](.github/workflows/pages.yml) | changes under `apps/web/` or `docs/` | Unit tests, demo build, SPA deep-link fallback, deploy to GitHub Pages |
 
 ```mermaid
 graph LR
-    B[build-backend<br/>package + test ×5] --> D
-    F[build-frontend<br/>build + test + nginx -t] --> D
+    B[build-backend<br/>package + test ×5] --> E
+    F[build-frontend<br/>build + test + npm audit] --> E
+    V[validate-infra<br/>kubeconform · promtool · nginx -t] --> E
+    E[e2e<br/>compose up · Keycloak users · Playwright] --> D
     D[docker-push<br/>6 images → GHCR] --> U[update-manifests<br/>pin SHA → ArgoCD syncs]
     P[pages: test → demo build] --> G[GitHub Pages]
 ```
@@ -497,7 +526,7 @@ graph LR
 
 ## Production readiness
 
-**Already in place:** persisted, recoverable sagas; outbox and inbox with at-least-once delivery and idempotent processing; DLQs; timeouts and compensation; idempotent writes; optimistic locking; circuit breakers; JWT validation at every hop with issuer checks; PKCE; hardened realm; secrets kept out of git; non-root containers; pinned images; health probes; resource limits; rolling updates; GitOps; dashboards as code; correlation-ID tracing; performance budgets; and 106 automated tests.
+**Already in place:** persisted, recoverable sagas; outbox and inbox with at-least-once delivery and idempotent processing; DLQs; timeouts and compensation; idempotent writes; optimistic locking; circuit breakers; JWT validation at every hop with issuer checks; PKCE; hardened realm; secrets kept out of git; non-root, capability-dropped pods; pinned images; health probes; resource limits; autoscaling and disruption budgets; rolling updates; GitOps; dashboards and alert rules as code; correlation-ID tracing; zero known dependency vulnerabilities; performance budgets; and 106 automated tests, including full-stack E2E in CI.
 
 **Before taking it to a real production environment:**
 
@@ -508,9 +537,9 @@ graph LR
 | Data | Managed or replicated PostgreSQL, MongoDB and Kafka (RF ≥ 3), backups with tested restores |
 | Pricing | Price items from the catalogue on the server; the client-sent price is a deliberate demo simplification |
 | Secrets | External secret store (Vault, AWS Secrets Manager or Sealed Secrets) instead of a plain `Secret` |
-| Scaling | HorizontalPodAutoscalers, PodDisruptionBudgets, NetworkPolicies |
-| Alerting | Alertmanager rules for DLQ depth, outbox lag, saga timeout rate and error budgets |
-| Supply chain | Image scanning (Trivy), SBOMs and signed images in CI |
+| Network isolation | NetworkPolicies limiting each pod to the peers it actually calls |
+| Alert routing | Alertmanager receivers (Slack / PagerDuty) for the existing rules, plus SLO-based error budgets |
+| Supply chain | Container image scanning (Trivy), SBOMs and signed images (cosign) |
 | Frontend config | Load the Keycloak and Grafana URLs at runtime instead of baking them into the build |
 
 ---
@@ -544,8 +573,9 @@ backend/
 infra/
   k8s/                    Kubernetes manifests, ArgoCD application, start script
   keycloak/               Realm import (no users or secrets)
-  monitoring/             Prometheus, Loki, Alloy, Grafana dashboards as code
+  monitoring/             Prometheus + alert rules, Loki, Alloy, Grafana dashboards as code
 docs/                     Project page and screenshots
+scripts/                  Keycloak user provisioning
 docker-compose.yml        Full local stack
 ```
 

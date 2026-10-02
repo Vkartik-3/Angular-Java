@@ -1,0 +1,27 @@
+# Weekly dependency updates, grouped so each ecosystem produces one PR.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule: { interval: weekly }
+    groups:
+      angular:
+        patterns: ["@angular/*", "primeng", "@primeuix/*"]
+      tooling:
+        patterns: ["*"]
+        exclude-patterns: ["@angular/*", "primeng", "@primeuix/*"]
+
+  - package-ecosystem: maven
+    directories: [/backend/gateway, /backend/order-service, /backend/payment-service, /backend/inventory-service, /backend/product-service]
+    schedule: { interval: weekly }
+    groups:
+      backend:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+
+  - package-ecosystem: docker
+    directories: [/apps/web, /backend/product-service]
+    schedule: { interval: monthly }

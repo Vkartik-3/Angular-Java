@@ -41,7 +41,7 @@ apply_configmap() {
 }
 apply_configmap mongo-init infra/docker/mongo-init.js
 apply_configmap keycloak-realm infra/keycloak/groove-realm.json
-apply_configmap prometheus-config infra/monitoring/prometheus/prometheus.yml
+apply_configmap prometheus-config infra/monitoring/prometheus
 apply_configmap loki-config infra/monitoring/loki/loki.yml
 apply_configmap alloy-config infra/monitoring/alloy/config-k8s.alloy
 apply_configmap grafana-datasources infra/monitoring/grafana/provisioning/datasources

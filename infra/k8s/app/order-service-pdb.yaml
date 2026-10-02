@@ -1,0 +1,12 @@
+# Keeps at least one orchestrator running through node drains and upgrades,
+# so in-flight sagas keep advancing.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-service
+  namespace: groove
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: order-service

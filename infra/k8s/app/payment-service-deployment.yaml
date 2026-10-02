@@ -31,6 +31,14 @@ spec:
         - name: payment-service
           image: ghcr.io/vkartik-3/angular-java/payment-service:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - containerPort: 8081
           resources:

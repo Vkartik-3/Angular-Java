@@ -1,0 +1,86 @@
+# Alerting rules for Groove. Validated in CI with `promtool check rules`.
+# Severity: critical = user-facing outage, page someone; warning = degraded, investigate.
+groups:
+  - name: groove-availability
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "Prometheus has not been able to scrape {{ $labels.job }} for over a minute."
+
+      - alert: GatewayHighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="gateway", status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_server_requests_seconds_count{job="gateway"}[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Gateway 5xx rate above 5%"
+          description: "{{ $value | humanizePercentage }} of gateway requests failed over the last 5 minutes."
+
+      - alert: GatewayHighLatency
+        expr: |
+          sum(rate(http_server_requests_seconds_sum{job="gateway", uri!~".*/events"}[5m]))
+            / clamp_min(sum(rate(http_server_requests_seconds_count{job="gateway", uri!~".*/events"}[5m])), 1e-9) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Gateway mean latency above 1s"
+          description: "Mean request latency is {{ $value | humanizeDuration }} (SSE streams excluded)."
+
+  - name: groove-saga
+    rules:
+      - alert: OutboxBacklog
+        expr: max(outbox_pending) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Outbox backlog above 100 events"
+          description: "{{ $value }} events are waiting to be published to Kafka; check broker connectivity."
+
+      - alert: SagaTimeouts
+        expr: increase(sagas_timed_out_total[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sagas are timing out"
+          description: "{{ $value }} saga(s) hit their step deadline in the last 10 minutes; a participant is not responding."
+
+      - alert: SagaFailureRateHigh
+        expr: |
+          sum(increase(sagas_completed_total{outcome="CANCELLED"}[15m]))
+            / clamp_min(sum(increase(sagas_completed_total[15m])), 1) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 25% of sagas are cancelled"
+          description: "{{ $value | humanizePercentage }} of sagas finished cancelled in the last 15 minutes."
+
+      - alert: SagaSlow
+        expr: |
+          sum(rate(saga_duration_seconds_sum{outcome="COMPLETED"}[10m]))
+            / clamp_min(sum(rate(saga_duration_seconds_count{outcome="COMPLETED"}[10m])), 1e-9) > 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Completed sagas average over 20s"
+          description: "Mean end-to-end saga duration is {{ $value | humanizeDuration }}."
+
+  - name: groove-messaging
+    rules:
+      - alert: MessagesInDeadLetterQueue
+        expr: sum by (topic) (increase(kafka_topic_partition_current_offset{topic=~".+-dlq"}[10m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "New messages in {{ $labels.topic }}"
+          description: "{{ $value }} message(s) exhausted their retries and were dead-lettered in the last 10 minutes."

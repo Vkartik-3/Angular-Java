@@ -6,7 +6,8 @@ metadata:
   name: order-service
   namespace: groove
 spec:
-  replicas: 2
+  # Replica count is owned by order-service-hpa.yaml (min 2) so ArgoCD
+  # self-heal and the autoscaler never fight over it.
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -38,6 +39,14 @@ spec:
         - name: order-service
           image: ghcr.io/vkartik-3/angular-java/order-service:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - containerPort: 8080
           env:

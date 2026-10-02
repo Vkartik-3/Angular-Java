@@ -7,7 +7,7 @@ metadata:
   name: gateway
   namespace: groove
 spec:
-  replicas: 1
+  # Replica count is owned by gateway-hpa.yaml.
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -30,6 +30,14 @@ spec:
         - name: gateway
           image: ghcr.io/vkartik-3/angular-java/gateway:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           ports:
             - containerPort: 8090
           resources:
