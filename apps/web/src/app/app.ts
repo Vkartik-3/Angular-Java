@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastModule } from 'primeng/toast';
 import { NavbarComponent } from './shared/navbar/navbar.component';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +12,7 @@ import { NavbarComponent } from './shared/navbar/navbar.component';
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class App {}
+export class App {
+  protected readonly demo = environment.demo;
+  protected readonly repoUrl = environment.repoUrl;
+}

@@ -1,6 +1,6 @@
-# ShopFlow on Minikube
+# Groove on Minikube
 
-ShopFlow runs as a fully containerised stack on Kubernetes. This document covers local deployment using Minikube and plain Kubernetes manifests (no Helm, no Kustomize). This is **additional** to `docker-compose.yml`, not a replacement — Compose stays the easy day-to-day dev option.
+Groove runs as a fully containerised stack on Kubernetes. This document covers local deployment using Minikube and plain Kubernetes manifests (no Helm, no Kustomize). This is **additional** to `docker-compose.yml`, not a replacement — Compose stays the easy day-to-day dev option.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ ShopFlow runs as a fully containerised stack on Kubernetes. This document covers
 
 `order-service` runs with 2 replicas. `FOR UPDATE SKIP LOCKED` prevents concurrent outbox workers from claiming the same row — see "Testing Concurrent Processing".
 
-This table is the core ShopFlow stack only. ArgoCD (optional, 7 more workloads in its own `argocd` namespace) is covered separately in "GitOps with ArgoCD" below.
+This table is the core Groove stack only. ArgoCD (optional, 7 more workloads in its own `argocd` namespace) is covered separately in "GitOps with ArgoCD" below.
 
 ## Prerequisites
 
@@ -76,7 +76,7 @@ cp infra/k8s/secrets.yaml.template infra/k8s/secrets.yaml
 
 Fill all blank password fields in the ignored `infra/k8s/secrets.yaml` before applying it. PostgreSQL and MongoDB credentials are supplied to the services through Secret references; application properties contain no production passwords. Keep local credentials outside version control.
 
-After startup, create customer and administrator users in the `shopflow` Keycloak realm with your own passwords and the required `user`/`admin` roles. Realm imports contain only public client and role definitions.
+After startup, create customer and administrator users in the `groove` Keycloak realm with your own passwords and the required `user`/`admin` roles. Realm imports contain only public client and role definitions.
 
 ### Environment Variables
 
@@ -99,7 +99,7 @@ SKIP_OBSERVABILITY=1 ./infra/k8s/start.sh
 ### What `start.sh` does
 
 1. Starts Minikube with the configured resources, enables `metrics-server`
-2. Creates the `shopflow` namespace and applies Secrets
+2. Creates the `groove` namespace and applies Secrets
 3. Creates ConfigMaps from the source configuration files (Compose already uses these same files — one source of truth for both deployment methods)
 4. Deploys infrastructure in dependency order — database → messaging → auth → application — waiting for each tier to be ready before starting the next
 5. Applies observability (unless `SKIP_OBSERVABILITY=1`)
@@ -119,50 +119,50 @@ kubectl apply -f infra/k8s/secrets.yaml
 # ConfigMaps generated from existing source files
 kubectl create configmap mongo-init \
   --from-file=infra/docker/mongo-init.js \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create configmap keycloak-realm \
-  --from-file=infra/keycloak/shopflow-realm.json \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  --from-file=infra/keycloak/groove-realm.json \
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create configmap prometheus-config \
   --from-file=infra/monitoring/prometheus/prometheus.yml \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create configmap loki-config \
   --from-file=infra/monitoring/loki/loki.yml \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create configmap alloy-config \
   --from-file=infra/monitoring/alloy/config-k8s.alloy \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create configmap grafana-datasources \
   --from-file=infra/monitoring/grafana/provisioning/datasources \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create configmap grafana-dashboards \
   --from-file=infra/monitoring/grafana/provisioning/dashboards \
-  -n shopflow --dry-run=client -o yaml | kubectl apply -f -
+  -n groove --dry-run=client -o yaml | kubectl apply -f -
 
 # Database
 kubectl apply -f infra/k8s/database/
-kubectl wait --for=condition=ready pod -l app=postgres -n shopflow --timeout=180s
-kubectl wait --for=condition=ready pod -l app=mongo -n shopflow --timeout=180s
+kubectl wait --for=condition=ready pod -l app=postgres -n groove --timeout=180s
+kubectl wait --for=condition=ready pod -l app=mongo -n groove --timeout=180s
 
 # Messaging — timeouts are generous on purpose: a fully cold image pull
 # (nothing cached yet) took Kafka past 4 minutes in testing
 kubectl apply -f infra/k8s/messaging/
-kubectl wait --for=condition=ready pod -l app=kafka -n shopflow --timeout=480s
-kubectl wait --for=condition=ready pod -l app=apicurio-registry -n shopflow --timeout=300s
+kubectl wait --for=condition=ready pod -l app=kafka -n groove --timeout=480s
+kubectl wait --for=condition=ready pod -l app=apicurio-registry -n groove --timeout=300s
 
 # Auth
 kubectl apply -f infra/k8s/auth/
-kubectl wait --for=condition=ready pod -l app=keycloak -n shopflow --timeout=480s
+kubectl wait --for=condition=ready pod -l app=keycloak -n groove --timeout=480s
 
 # Application
 kubectl apply -f infra/k8s/app/
-kubectl wait --for=condition=ready pod -l app=order-service -n shopflow --timeout=420s
+kubectl wait --for=condition=ready pod -l app=order-service -n groove --timeout=420s
 
 # Observability (optional)
 kubectl apply -f infra/k8s/observability/prometheus-deployment.yaml -f infra/k8s/observability/prometheus-service.yaml
@@ -171,18 +171,18 @@ kubectl apply -f infra/k8s/observability/alloy-rbac.yaml -f infra/k8s/observabil
 kubectl apply -f infra/k8s/observability/grafana-deployment.yaml -f infra/k8s/observability/grafana-service.yaml
 
 # Port-forwards
-kubectl port-forward svc/frontend 4200:80 -n shopflow &
-kubectl port-forward svc/gateway 8090:8090 -n shopflow &
-kubectl port-forward svc/keycloak 8180:8080 -n shopflow &
-kubectl port-forward svc/grafana 3000:3000 -n shopflow &
+kubectl port-forward svc/frontend 4200:80 -n groove &
+kubectl port-forward svc/gateway 8090:8090 -n groove &
+kubectl port-forward svc/keycloak 8180:8080 -n groove &
+kubectl port-forward svc/grafana 3000:3000 -n groove &
 ```
 
 ## Verifying the Deployment
 
 ```bash
-kubectl get pods -n shopflow
-kubectl get services -n shopflow
-kubectl top pods -n shopflow   # needs the metrics-server addon, enabled by start.sh
+kubectl get pods -n groove
+kubectl get services -n groove
+kubectl top pods -n groove   # needs the metrics-server addon, enabled by start.sh
 ```
 
 Expected: every pod `STATUS Running`, `READY 1/1`. A handful of early restarts is normal on a resource-constrained node — the probes are designed to self-heal that; it's only a problem if a pod is stuck in `CrashLoopBackOff` or `Pending` and not recovering.
@@ -197,8 +197,8 @@ Place 10 orders simultaneously:
 
 ```bash
 TOKEN=$(curl -s -X POST \
-  http://localhost:8180/realms/shopflow/protocol/openid-connect/token \
-  -d "client_id=shopflow-app&grant_type=password" \
+  http://localhost:8180/realms/groove/protocol/openid-connect/token \
+  -d "client_id=groove-app&grant_type=password" \
   --data-urlencode "username=$E2E_USER_USERNAME" \
   --data-urlencode "password=$E2E_USER_PASSWORD" \
   | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
@@ -235,9 +235,9 @@ Expect 10 distinct order IDs, each with a complete, consistent saga sequence and
 Optional — confirm both replicas actually competed (not just that nothing broke): count `"Outbox sent"` log lines per pod. Both should be non-zero and roughly even.
 
 ```bash
-for pod in $(kubectl get pods -n shopflow -l app=order-service -o jsonpath='{.items[*].metadata.name}'); do
+for pod in $(kubectl get pods -n groove -l app=order-service -o jsonpath='{.items[*].metadata.name}'); do
   echo "=== $pod ==="
-  kubectl logs "$pod" -n shopflow --since=2m | grep -c "Outbox sent"
+  kubectl logs "$pod" -n groove --since=2m | grep -c "Outbox sent"
 done
 ```
 
@@ -280,7 +280,7 @@ echo
 Check current state:
 
 ```bash
-kubectl get application shopflow-app -n argocd -o jsonpath='{.status.sync.status}{"\n"}{.status.health.status}{"\n"}'
+kubectl get application groove-app -n argocd -o jsonpath='{.status.sync.status}{"\n"}{.status.health.status}{"\n"}'
 ```
 
 Expect `Synced` / `Healthy`.
@@ -288,8 +288,8 @@ Expect `Synced` / `Healthy`.
 Push any change to `main` and watch ArgoCD reconcile without running `kubectl apply`:
 
 ```bash
-kubectl get application shopflow-app -n argocd -w
-kubectl get pods -n shopflow -w
+kubectl get application groove-app -n argocd -w
+kubectl get pods -n groove -w
 ```
 
 Status transitions: `Synced` → `OutOfSync` → `Progressing` → `Synced` / `Healthy`.
@@ -309,7 +309,7 @@ Status transitions: `Synced` → `OutOfSync` → `Progressing` → `Synced` / `H
 | Multiple replicas          | `order-service` × 2                                                                                       |
 | Rolling update strategy    | All 6 application Deployments — `maxUnavailable: 0`, `maxSurge: 1`                                        |
 | Service / DNS              | Inter-service communication by Kubernetes Service name, matching Compose's names                          |
-| Namespace                  | All ShopFlow resources isolated in `shopflow`                                                             |
+| Namespace                  | All Groove resources isolated in `groove`                                                             |
 | Custom Resource Definition | ArgoCD's `Application`/`AppProject` types, in `argocd`                                                    |
 | GitOps / continuous reconciliation | ArgoCD watches `infra/k8s/app/` in Git and reconciles the cluster to match — see "GitOps with ArgoCD"    |
 
@@ -318,7 +318,7 @@ Status transitions: `Synced` → `OutOfSync` → `Progressing` → `Synced` / `H
 ### Pod stuck in Pending
 
 ```bash
-kubectl describe pod <pod-name> -n shopflow
+kubectl describe pod <pod-name> -n groove
 ```
 
 Usually insufficient resources. Try `MINIKUBE_MEMORY=6144 ./infra/k8s/start.sh`, or if that's already the case, trim something else — see "Resource sizing" implementation note.
@@ -328,16 +328,16 @@ Usually insufficient resources. Try `MINIKUBE_MEMORY=6144 ./infra/k8s/start.sh`,
 `kubectl port-forward` is tied to a specific pod, not the Service — a rollout, a crash, a rescheduling, anything that replaces the pod kills it silently (no error in your terminal). Re-run `./infra/k8s/start.sh` (idempotent, refreshes the port-forwards) or manually:
 
 ```bash
-kubectl port-forward svc/frontend 4200:80 -n shopflow &
-kubectl port-forward svc/gateway 8090:8090 -n shopflow &
-kubectl port-forward svc/keycloak 8180:8080 -n shopflow &
-kubectl port-forward svc/grafana 3000:3000 -n shopflow &
+kubectl port-forward svc/frontend 4200:80 -n groove &
+kubectl port-forward svc/gateway 8090:8090 -n groove &
+kubectl port-forward svc/keycloak 8180:8080 -n groove &
+kubectl port-forward svc/grafana 3000:3000 -n groove &
 ```
 
 ### Keycloak not ready
 
 ```bash
-kubectl logs -f deployment/keycloak -n shopflow
+kubectl logs -f deployment/keycloak -n groove
 ```
 
 Realm import alone takes ~100s; with a cold image pull on top, budget several minutes before it's actually stuck rather than just slow.
@@ -345,14 +345,14 @@ Realm import alone takes ~100s; with a cold image pull on top, budget several mi
 ### Check logs for any service
 
 ```bash
-kubectl logs -f deployment/order-service -n shopflow
-kubectl logs -f statefulset/kafka -n shopflow
+kubectl logs -f deployment/order-service -n groove
+kubectl logs -f statefulset/kafka -n groove
 ```
 
 ## Implementation Notes
 
 - **Keycloak access** — reachable only via `localhost:8180`, not through Kubernetes DNS. order-, payment- and inventory-service hardcode `http://localhost:8180` as the JWT issuer, and the frontend has it baked into its build (`environment.prod.ts`). Changing the port breaks login for a reason no Kubernetes config can fix — port-forward is the only viable local path.
-- **Ingress** — `infra/k8s/ingress.yaml` routes correctly but isn't part of the local workflow: OAuth2/PKCE needs a secure context (HTTPS or `localhost`), and `http://shopflow.local` is neither. Fixing that needs real TLS, which only pays off with a real domain and automated certs (cert-manager + Let's Encrypt on a cloud deployment). Ingress stays in the repo to show host-based routing is understood, and becomes relevant again on a cloud deployment.
+- **Ingress** — `infra/k8s/ingress.yaml` routes correctly but isn't part of the local workflow: OAuth2/PKCE needs a secure context (HTTPS or `localhost`), and `http://groove.local` is neither. Fixing that needs real TLS, which only pays off with a real domain and automated certs (cert-manager + Let's Encrypt on a cloud deployment). Ingress stays in the repo to show host-based routing is understood, and becomes relevant again on a cloud deployment.
 - **Persistent storage** — PostgreSQL, MongoDB, Loki, and Grafana are backed by PersistentVolumeClaims, so their data survives pod restarts and replacements.
 - **Polyglot persistence** — order-service (relational, Flyway-managed saga/outbox schema, JPA transactions) stays on PostgreSQL; product-service (a flat, document-shaped catalogue with no relations) moved to MongoDB. Its Spring Batch CSV importer uses `ResourcelessJobRepository` (Spring Batch 6's default when no relational `DataSource` is present) rather than a JDBC- or Mongo-backed job repository — each import is a one-shot, non-restartable run whose execution history nothing in this app ever queries back, so there's nothing worth persisting for it.
 - **Kafka networking** — Kafka's Service is headless (`clusterIP: None`) with `publishNotReadyAddresses: true`. KRaft's controller quorum has the broker reach itself by Service name; a normal ClusterIP is a virtual IP, and a pod hairpinning back to itself through its own Service VIP isn't reliable on Minikube's basic bridge CNI. Headless DNS resolves straight to the real pod IP instead. `publishNotReadyAddresses` is needed because a headless Service only publishes a pod's DNS entry once it's Ready by default, and Kafka can't become Ready until it resolves and reaches itself.

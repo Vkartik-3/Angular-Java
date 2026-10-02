@@ -13,7 +13,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: product-service
-  namespace: shopflow
+  namespace: groove
 spec:
   replicas: 1
   strategy:
@@ -49,15 +49,15 @@ spec:
             - name: SPRING_MONGODB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: MONGO_USER
             - name: SPRING_MONGODB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: MONGO_PASSWORD
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
-              value: http://keycloak:8080/realms/shopflow/protocol/openid-connect/certs
+              value: http://keycloak:8080/realms/groove/protocol/openid-connect/certs
           resources:
             requests:
               cpu: "100m"

@@ -1,3 +1,19 @@
+@if (demo) {
+  <aside class="demo-banner" role="note">
+    <i class="pi pi-sparkles" aria-hidden="true"></i>
+    <span>
+      <strong>Live demo.</strong>
+      The backend runs in your browser, with the same API contract and saga transitions as the real services.
+    </span>
+    <a [href]="repoUrl" target="_blank" rel="noopener">Run the full stack <i class="pi pi-arrow-up-right" aria-hidden="true"></i></a>
+  </aside>
+}
 <app-navbar />
-<p-toast [life]="4000" />
-<router-outlet />
+<p-toast [life]="4000" position="bottom-right" />
+<main class="app-main">
+  <router-outlet />
+</main>
+<footer class="app-footer">
+  <span>Groove · Saga-orchestrated microservices on Kafka</span>
+  <a [href]="repoUrl" target="_blank" rel="noopener"><i class="pi pi-github" aria-hidden="true"></i> Source</a>
+</footer>

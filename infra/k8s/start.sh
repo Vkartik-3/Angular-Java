@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-NAMESPACE=shopflow
+NAMESPACE=groove
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/../.."
 
@@ -40,7 +40,7 @@ apply_configmap() {
     --dry-run=client -o yaml | kubectl apply -f -
 }
 apply_configmap mongo-init infra/docker/mongo-init.js
-apply_configmap keycloak-realm infra/keycloak/shopflow-realm.json
+apply_configmap keycloak-realm infra/keycloak/groove-realm.json
 apply_configmap prometheus-config infra/monitoring/prometheus/prometheus.yml
 apply_configmap loki-config infra/monitoring/loki/loki.yml
 apply_configmap alloy-config infra/monitoring/alloy/config-k8s.alloy
@@ -111,7 +111,7 @@ fi
 sleep 3
 
 echo
-echo "ShopFlow is running:"
+echo "Groove is running:"
 echo "  App:      http://localhost:4200"
 echo "  Gateway:  http://localhost:8090/api"
 echo "  Keycloak: http://localhost:8180"

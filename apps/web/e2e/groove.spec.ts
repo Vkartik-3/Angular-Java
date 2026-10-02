@@ -28,11 +28,11 @@ async function navigateToOrders(page: Page) {
 }
 
 async function navigateToAdmin(page: Page) {
-  await page.getByRole('button', { name: 'Admin' }).click();
+  await page.getByRole('link', { name: 'Admin' }).click();
   await page.waitForURL('**/admin');
 }
 
-test.describe('ShopFlow E2E', () => {
+test.describe('Groove E2E', () => {
 
   // Guard against dirty state left by a previous run.
   test.beforeAll(async ({ browser }) => {

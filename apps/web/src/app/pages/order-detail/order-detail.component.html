@@ -1,87 +1,117 @@
-<div class="page">
-  @if (loading()) {
-    <p>Loading…</p>
-  } @else if (order()) {
-    <div class="header">
-      <div>
-        <h2 class="page-title">Order Detail</h2>
-        <p class="order-id mono">{{ order()!.id }}</p>
-      </div>
-      <div class="header-right">
-        <p-tag [value]="order()!.status | statusLabel" [severity]="getSeverity(order()!.status)" />
-      </div>
-    </div>
+<div class="page page--narrow">
+  <a routerLink="/orders" class="back"><i class="pi pi-arrow-left" aria-hidden="true"></i> All orders</a>
 
-    <div class="section">
-      <div class="section-header">
-        <h3>Saga Timeline</h3>
-        @if (isWatching() && (order()?.history | sagaLive)) {
+  @if (loading()) {
+    <div class="surface surface-pad" aria-busy="true">
+      <div class="skeleton sk sk--title"></div>
+      <div class="skeleton sk"></div>
+      <div class="skeleton sk sk--block"></div>
+    </div>
+  } @else if (order(); as o) {
+    <header class="hero surface">
+      <div class="hero__top">
+        <div>
+          <p class="eyebrow">Order</p>
+          <div class="hero__id">
+            <h1 class="page-title mono">{{ o.id.slice(0, 8) }}</h1>
+            <button type="button" class="icon-btn" (click)="copyId(o.id)" [pTooltip]="o.id" tooltipPosition="top" aria-label="Copy full order ID">
+              <i class="pi pi-copy" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <p-tag [value]="o.status | statusLabel" [severity]="getSeverity(o.status)" />
+      </div>
+      <dl class="hero__meta">
+        <div><dt>Placed</dt><dd>{{ o.createdAt | date:'MMM d, y · HH:mm' }}</dd></div>
+        <div><dt>Customer</dt><dd>{{ o.username }}</dd></div>
+        <div><dt>Items</dt><dd class="num">{{ itemCount() }}</dd></div>
+        <div><dt>Total</dt><dd class="num">{{ o.total | currency:'USD' }}</dd></div>
+      </dl>
+    </header>
+
+    <section class="surface surface-pad">
+      <div class="section-head">
+        <h2 class="section-title">Saga progress</h2>
+        @if (isWatching() && (o.history | sagaLive)) {
           <span class="live-badge"><span class="live-dot"></span>Live</span>
         }
       </div>
-
-      @if (timelineEntries().length === 0) {
-        <p class="muted">Waiting for first status event…</p>
-      } @else {
-        <p-timeline [value]="timelineEntries()" align="left">
-          <ng-template pTemplate="marker" let-entry>
-            <span class="tl-marker" [style.background]="entry.color" [style.border-color]="entry.color">
-              <i [class]="entry.icon"></i>
+      <ol class="pipeline">
+        @for (step of steps(); track step.key) {
+          <li class="step" [attr.data-state]="step.state">
+            <span class="step__icon" aria-hidden="true">
+              @switch (step.state) {
+                @case ('done') { <i class="pi pi-check"></i> }
+                @case ('failed') { <i class="pi pi-times"></i> }
+                @case ('compensated') { <i class="pi pi-replay"></i> }
+                @case ('active') { <i class="pi pi-spin pi-spinner"></i> }
+                @case ('skipped') { <i class="pi pi-minus"></i> }
+                @default { <i class="pi pi-circle"></i> }
+              }
             </span>
-          </ng-template>
-          <ng-template pTemplate="content" let-entry>
-            <div class="tl-content">
-              <span class="tl-label">{{ entry.label }}</span>
-              <span class="tl-time">{{ entry.occurredAt | date:'HH:mm:ss' }}</span>
-            </div>
-          </ng-template>
-        </p-timeline>
-      }
-    </div>
+            <span class="step__text">
+              <span class="step__label">{{ step.label }}</span>
+              <span class="step__caption">{{ step.caption }}</span>
+              <span class="step__service mono">{{ step.service }}</span>
+            </span>
+          </li>
+        }
+      </ol>
+    </section>
 
-    @if (corrId()) {
-      <div class="grafana-row">
-        <a [href]="grafanaUrl()!" target="_blank" rel="noopener" class="grafana-link">
-          <i class="pi pi-chart-line"></i> View logs in Grafana
-        </a>
-      </div>
-    }
+    <div class="columns">
+      <section class="surface surface-pad">
+        <h2 class="section-title">Event timeline</h2>
+        @if (timelineEntries().length === 0) {
+          <p class="muted">Waiting for first status event…</p>
+        } @else {
+          <ol class="timeline">
+            @for (entry of timelineEntries(); track $index) {
+              <li class="tl" [attr.data-tone]="entry.tone">
+                <span class="tl__marker" aria-hidden="true"><i [class]="entry.icon"></i></span>
+                <span class="tl__body">
+                  <span class="tl-label">{{ entry.label }}</span>
+                  <span class="tl__time mono">
+                    {{ entry.occurredAt | date:'HH:mm:ss' }}
+                    @if (entry.offset) { <span class="muted">{{ entry.offset }}</span> }
+                  </span>
+                </span>
+              </li>
+            }
+          </ol>
+        }
+        @if (grafanaUrl(); as url) {
+          <a [href]="url" target="_blank" rel="noopener" class="grafana-link">
+            <i class="pi pi-chart-line" aria-hidden="true"></i> Trace this order in Grafana
+          </a>
+        }
+      </section>
 
-    <div class="section">
-      <h3>Items</h3>
-      <p-table [value]="order()!.items">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Unit Price</th>
-            <th>Line Total</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-item>
-          <tr>
-            <td>
-              <div class="product-cell">
-                @if (item.imageUrl) {
-                  <img [ngSrc]="item.imageUrl" [alt]="item.productName || ''" class="product-thumb" width="36" height="36" />
-                }
-                {{ item.productName || item.productId.substring(0, 8) + '…' }}
-              </div>
-            </td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.price | number:'1.2-2' }}</td>
-            <td>{{ item.quantity * item.price | number:'1.2-2' }}</td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="footer">
-          <tr>
-            <td colspan="3" class="total-label">Total</td>
-            <td>{{ order()!.total | number:'1.2-2' }}</td>
-          </tr>
-        </ng-template>
-      </p-table>
+      <section class="surface surface-pad">
+        <h2 class="section-title">Items</h2>
+        <ul class="items">
+          @for (item of o.items; track item.productId) {
+            <li class="item">
+              @if (item.imageUrl) {
+                <img [src]="item.imageUrl" [alt]="item.productName || ''" width="52" height="52" loading="lazy" />
+              } @else {
+                <span class="item__ph" aria-hidden="true"><i class="pi pi-image"></i></span>
+              }
+              <span class="item__info">
+                <span class="item__name">{{ item.productName || item.productId.substring(0, 8) + '…' }}</span>
+                <span class="muted num">{{ item.quantity }} × {{ item.price | currency:'USD' }}</span>
+              </span>
+              <span class="item__total num">{{ item.quantity * item.price | currency:'USD' }}</span>
+            </li>
+          }
+        </ul>
+        <div class="items__total"><span>Total</span><span class="num">{{ o.total | currency:'USD' }}</span></div>
+      </section>
     </div>
   } @else {
-    <p>Order not found.</p>
+    <div class="surface empty">
+      <i class="pi pi-question-circle" aria-hidden="true"></i>
+      <p>Order not found.</p>
+    </div>
   }
 </div>

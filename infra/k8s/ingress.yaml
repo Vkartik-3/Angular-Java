@@ -3,17 +3,17 @@
 # non-localhost hosts. Not used for local development; see infra/k8s/README.md.
 # Keycloak deliberately has no Ingress route either way — see
 # infra/k8s/auth/keycloak-deployment.yaml. Reach the app via:
-#   kubectl port-forward svc/frontend 4200:80 -n shopflow
-#   kubectl port-forward svc/keycloak 8180:8080 -n shopflow
+#   kubectl port-forward svc/frontend 4200:80 -n groove
+#   kubectl port-forward svc/keycloak 8180:8080 -n groove
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: shopflow-ingress
-  namespace: shopflow
+  name: groove-ingress
+  namespace: groove
 spec:
   ingressClassName: nginx
   rules:
-    - host: shopflow.local
+    - host: groove.local
       http:
         paths:
           - path: /api

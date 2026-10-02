@@ -7,7 +7,7 @@ export enum OrderStatus {
   CANCELLED          = 'CANCELLED',
 }
 
-export type HistoryStatus = OrderStatus | 'PAYMENT_ROLLED_BACK';
+export type HistoryStatus = `${OrderStatus}` | 'PAYMENT_ROLLED_BACK';
 
 export interface OrderItemRequest {
   productId: string;

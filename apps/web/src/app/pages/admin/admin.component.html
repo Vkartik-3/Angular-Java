@@ -1,22 +1,30 @@
 <div class="page">
-  <h2 class="page-title">Admin Controls</h2>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Operations</p>
+      <h1 class="page-title">Admin Controls</h1>
+      <p class="page-subtitle">Manage the catalogue and inject failures, then watch the saga retry, time out and compensate in each order's timeline.</p>
+    </div>
+  </header>
 
-  <div class="card">
+  <div class="admin-grid">
+
+  <div class="card card--wide">
     <p class="card-label"><i class="pi pi-database"></i> Product Catalogue</p>
     <p class="card-hint">Import products from a CSV file. Replaces the entire catalogue on each import.</p>
     <div>
       <p class="card-hint">Sample files ready to import:</p>
       <div class="sample-row">
-        <a href="/assets/sample-data/classic-rock.csv" download class="sample-link">
+        <a href="assets/sample-data/classic-rock.csv" download class="sample-link">
           <i class="pi pi-download"></i> Classic Rock
         </a>
-        <a href="/assets/sample-data/80s-rock.csv" download class="sample-link">
+        <a href="assets/sample-data/80s-rock.csv" download class="sample-link">
           <i class="pi pi-download"></i> 80s Rock
         </a>
-        <a href="/assets/sample-data/heavy-metal.csv" download class="sample-link">
+        <a href="assets/sample-data/heavy-metal.csv" download class="sample-link">
           <i class="pi pi-download"></i> Heavy Metal
         </a>
-        <a href="/assets/sample-data/turntables.csv" download class="sample-link">
+        <a href="assets/sample-data/turntables.csv" download class="sample-link">
           <i class="pi pi-download"></i> Turntables
         </a>
       </div>
@@ -47,8 +55,8 @@
 
     <div class="import-row">
       <input #fileInput type="file" accept=".csv" class="hidden-input" (change)="onFileChange($event)" />
-      <p-button label="Choose CSV" icon="pi pi-upload" styleClass="csv-btn" (click)="fileInput.click()" />
-      <p-button label="Import" icon="pi pi-check" styleClass="btn-import"
+      <p-button label="Choose CSV" icon="pi pi-upload" severity="secondary" [outlined]="true" (click)="fileInput.click()" />
+      <p-button label="Import" icon="pi pi-check"
                 [loading]="importing()" [disabled]="!selectedFile() || importing()"
                 (click)="importCatalogue()" />
     </div>
@@ -144,7 +152,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card card--wide">
     <p class="card-label"><i class="pi pi-exclamation-triangle"></i> Failure simulations</p>
     <p class="card-hint">Forces the consumer to throw on every message — triggers DLQ after 5 retries. Saga will time out.</p>
     <div class="crash-row">
@@ -177,5 +185,6 @@
         }
       </div>
     </div>
+  </div>
   </div>
 </div>

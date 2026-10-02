@@ -1,5 +1,8 @@
 name: CI/CD
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -86,6 +89,12 @@ jobs:
 
       - name: Build
         run: cd apps/web && npm run build
+
+      - name: Validate nginx config
+        run: |
+          docker run --rm --add-host gateway:127.0.0.1 \
+            -v "$PWD/apps/web/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginx:alpine nginx -t
 
       - name: Test
         run: |

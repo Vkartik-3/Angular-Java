@@ -6,7 +6,7 @@
 discovery.kubernetes "pods" {
   role = "pod"
   namespaces {
-    names = ["shopflow"]
+    names = ["groove"]
   }
 }
 

@@ -1,21 +1,23 @@
-import { ChangeDetectionStrategy, Component, inject, effect, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { DecimalPipe, NgOptimizedImage } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
-import { CardModule } from 'primeng/card';
-import { CarouselModule } from 'primeng/carousel';
 import { MessageService } from 'primeng/api';
 import { OrderService } from '../../core/services/order.service';
 import { CartService } from '../../core/services/cart.service';
 import { ProductService } from '../../core/services/product.service';
+import { Product } from '../../core/models/product.model';
 import { ProductDisplayNamePipe } from '../../core/pipes/product-display-name.pipe';
 import { CanComponentDeactivate } from './order-create.guard';
+
+type Category = 'all' | 'vinyl' | 'turntable';
 
 @Component({
   selector: 'app-order-create',
   standalone: true,
-  imports: [ButtonModule, CardModule, CarouselModule, DecimalPipe, NgOptimizedImage, RouterLink, ProductDisplayNamePipe],
+  imports: [ButtonModule, CurrencyPipe, RouterLink, ProductDisplayNamePipe],
   templateUrl: './order-create.component.html',
   styleUrl: './order-create.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -28,21 +30,51 @@ export class OrderCreateComponent implements CanComponentDeactivate {
 
   protected cartService = inject(CartService);
 
-  readonly products = toSignal(this.productService.getAll(), { initialValue: null });
+  readonly products = toSignal(
+    this.productService.getAll().pipe(catchError(() => {
+      this.messageService.add({ severity: 'error', summary: 'Could not load the catalogue' });
+      return of([] as Product[]);
+    })),
+    { initialValue: null }
+  );
   readonly submitting = signal(false);
+  readonly category = signal<Category>('all');
+  readonly query = signal('');
+  readonly skeletons = Array.from({ length: 8 });
 
-  constructor() {
-    effect(() => {
-      this.cartService.cart();
-      Promise.resolve().then(() => window.dispatchEvent(new Event('resize')));
-    });
+  readonly categories = computed(() => {
+    const all = this.products() ?? [];
+    return [
+      { id: 'all' as Category, label: 'All', count: all.length },
+      { id: 'vinyl' as Category, label: 'Vinyl', count: all.filter(p => p.category === 'vinyl').length },
+      { id: 'turntable' as Category, label: 'Turntables', count: all.filter(p => p.category === 'turntable').length }
+    ];
+  });
+
+  readonly visible = computed(() => {
+    const c = this.category();
+    const q = this.query().trim().toLowerCase();
+    return (this.products() ?? []).filter(p =>
+      (c === 'all' || p.category === c) &&
+      (!q || Object.values(p.attributes).some(v => v.toLowerCase().includes(q)))
+    );
+  });
+
+  readonly quantities = computed(() =>
+    new Map(this.cartService.cart().map(i => [i.product.id, i.quantity]))
+  );
+
+  title(p: Product): string {
+    return p.category === 'vinyl' ? p.attributes['title'] : p.attributes['name'];
   }
 
-  readonly responsiveOptions = [
-    { breakpoint: '1024px', numVisible: 3, numScroll: 1 },
-    { breakpoint: '768px',  numVisible: 2, numScroll: 1 },
-    { breakpoint: '560px',  numVisible: 1, numScroll: 1 }
-  ];
+  subtitle(p: Product): string {
+    return p.category === 'vinyl' ? p.attributes['artist'] : p.attributes['manufacturer'];
+  }
+
+  onSearch(event: Event) {
+    this.query.set((event.target as HTMLInputElement).value);
+  }
 
   submit(): void {
     if (this.submitting()) return;
@@ -64,11 +96,13 @@ export class OrderCreateComponent implements CanComponentDeactivate {
         if (orderId) {
           this.cartService.clear();
           void this.router.navigate(['/orders', orderId], { state: { corrId } });
+        } else {
+          this.submitting.set(false);
         }
       },
       error: () => {
         this.submitting.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Failed to submit order' });
+        this.messageService.add({ severity: 'error', summary: 'Failed to submit order', detail: 'Please try again.' });
       }
     });
   }

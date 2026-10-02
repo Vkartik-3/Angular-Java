@@ -1,0 +1,85 @@
+name: Deploy demo to GitHub Pages
+
+# Builds the Angular SPA in demo mode (in-browser simulated backend) and
+# publishes it, together with the docs page, to GitHub Pages.
+#
+# One-time setup: Settings → Pages → Source = "GitHub Actions", then set the
+# repository variable ENABLE_PAGES_DEPLOY=true. Until then the build still runs
+# on every push so a broken demo is caught early, but nothing is deployed.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Unit tests
+        working-directory: apps/web
+        run: npm test -- --watch=false
+
+      - name: Build demo
+        working-directory: apps/web
+        run: npx ng build --configuration demo --base-href "/${{ github.event.repository.name }}/" --output-path dist/demo
+
+      - name: Assemble site
+        run: |
+          SITE=apps/web/dist/demo/browser
+          # GitHub Pages serves 404.html for unknown paths, which lets the SPA
+          # router handle deep links such as /orders/<id> on a hard refresh.
+          cp "$SITE/index.html" "$SITE/404.html"
+          touch "$SITE/.nojekyll"
+          mkdir -p "$SITE/docs"
+          cp -R docs/. "$SITE/docs/"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist/demo/browser
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && (github.event_name == 'workflow_dispatch' || vars.ENABLE_PAGES_DEPLOY == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

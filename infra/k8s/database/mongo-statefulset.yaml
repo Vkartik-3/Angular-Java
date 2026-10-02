@@ -4,7 +4,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mongo-pvc
-  namespace: shopflow
+  namespace: groove
 spec:
   accessModes:
     - ReadWriteOnce
@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
-  namespace: shopflow
+  namespace: groove
 spec:
   serviceName: mongo
   replicas: 1
@@ -39,12 +39,12 @@ spec:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: MONGO_USER
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: MONGO_PASSWORD
           volumeMounts:
             - name: mongo-data

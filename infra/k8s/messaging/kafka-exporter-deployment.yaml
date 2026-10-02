@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka-exporter
-  namespace: shopflow
+  namespace: groove
 spec:
   replicas: 1
   selector:
@@ -22,7 +22,7 @@ spec:
           command: ["sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done"]
       containers:
         - name: kafka-exporter
-          image: danielqsj/kafka-exporter:latest
+          image: danielqsj/kafka-exporter:v1.9.0
           args:
             - --kafka.server=kafka:9092
           ports:

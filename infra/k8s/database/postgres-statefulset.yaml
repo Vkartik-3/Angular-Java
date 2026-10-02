@@ -5,7 +5,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
-  namespace: shopflow
+  namespace: groove
 spec:
   accessModes:
     - ReadWriteOnce
@@ -17,7 +17,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: shopflow
+  namespace: groove
 spec:
   serviceName: postgres
   replicas: 1
@@ -40,12 +40,12 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: POSTGRES_PASSWORD
           volumeMounts:
             - name: postgres-data

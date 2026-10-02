@@ -1,51 +1,108 @@
 <div class="page">
-  <p-toolbar>
-    <ng-template pTemplate="start">
-      <h2 class="page-title">Orders</h2>
-    </ng-template>
-    <ng-template pTemplate="end">
-      <p-button label="New Order" icon="pi pi-plus" (click)="newOrder()" styleClass="w-full btn-new-order" />
-    </ng-template>
-  </p-toolbar>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Dashboard</p>
+      <h1 class="page-title">Orders</h1>
+      <p class="page-subtitle">
+        Every order runs through a saga: payment, then inventory, with automatic compensation when a step fails.
+      </p>
+    </div>
+    <p-button label="New Order" icon="pi pi-plus" (click)="newOrder()" />
+  </header>
 
-  <p-table [value]="orders()" [loading]="loading()" [paginator]="true" [rows]="10"
-           sortField="createdAt" [sortOrder]="-1">
-    <ng-template pTemplate="header">
-      <tr>
-        <th>Order ID</th>
-        <th>Customer</th>
-        <th>Status</th>
-        <th pSortableColumn="createdAt" style="width: 180px">
-          Created <p-sortIcon field="createdAt" />
-        </th>
-        <th style="width: 90px">Items</th>
-        <th style="width: 100px">Total</th>
-        <th style="width: 90px"></th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td colspan="7">No orders found.</td>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-order>
-      <tr>
-        <td>
-          <span [pTooltip]="order.id" tooltipPosition="top" style="cursor:default">
-            {{ order.id | slice:0:13 }}…
-          </span>
-        </td>
-        <td>{{ order.username }}</td>
-        <td>
-          <p-tag [value]="order.status | statusLabel" [severity]="getSeverity(order.status)" />
-        </td>
-        <td>{{ order.createdAt | date:'yyyy-MM-dd HH:mm' }}</td>
-        <td>{{ totalItems(order.items) }}</td>
-        <td>{{ order.total | number:'1.2-2' }}</td>
-        <td>
-          <p-button label="View" severity="secondary" size="small" (click)="view(order.id)" />
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+  <section class="stats" aria-label="Order statistics">
+    <div class="stat surface">
+      <span class="stat__label">Total orders</span>
+      <span class="stat__value num">{{ loading() ? '—' : counts().all }}</span>
+      <span class="stat__hint">{{ auth.hasRole('admin') ? 'All customers' : 'Placed by you' }}</span>
+    </div>
+    <div class="stat surface">
+      <span class="stat__label">Completed</span>
+      <span class="stat__value stat__value--success num">{{ loading() ? '—' : counts().completed }}</span>
+      <span class="stat__hint">
+        @if (successRate() !== null) { {{ successRate() }}% success rate } @else { No finished sagas yet }
+      </span>
+    </div>
+    <div class="stat surface">
+      <span class="stat__label">Failed / cancelled</span>
+      <span class="stat__value stat__value--danger num">{{ loading() ? '—' : counts().failed + counts().cancelled }}</span>
+      <span class="stat__hint">Compensated automatically</span>
+    </div>
+    <div class="stat surface">
+      <span class="stat__label">Revenue</span>
+      <span class="stat__value num">{{ loading() ? '—' : (revenue() | currency:'USD':'symbol':'1.0-0') }}</span>
+      <span class="stat__hint">From completed orders</span>
+    </div>
+  </section>
+
+  <section class="surface table-card">
+    <div class="table-toolbar">
+      <div class="segmented" role="tablist" aria-label="Filter by status">
+        @for (f of filters; track f.id) {
+          <button type="button" role="tab" [class.is-active]="filter() === f.id" [attr.aria-selected]="filter() === f.id"
+                  (click)="filter.set(f.id)">
+            {{ f.label }} <span class="count">{{ counts()[f.id] }}</span>
+          </button>
+        }
+      </div>
+      <label class="search">
+        <span class="sr-only">Search orders</span>
+        <i class="pi pi-search" aria-hidden="true"></i>
+        <input type="search" placeholder="Search by ID, customer or album" [value]="query()" (input)="onSearch($event)" />
+      </label>
+    </div>
+
+    <p-table [value]="visible()" [loading]="loading()" [paginator]="visible().length > 10" [rows]="10"
+             sortField="createdAt" [sortOrder]="-1" styleClass="orders-table">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Order</th>
+          <th class="col-customer">Customer</th>
+          <th>Status</th>
+          <th pSortableColumn="createdAt" class="col-date">Placed <p-sortIcon field="createdAt" /></th>
+          <th class="col-items">Items</th>
+          <th pSortableColumn="total" class="col-total">Total <p-sortIcon field="total" /></th>
+          <th class="col-go"><span class="sr-only">Open</span></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7">
+            <div class="empty">
+              <i class="pi pi-inbox" aria-hidden="true"></i>
+              @if (orders().length === 0) {
+                <p>No orders yet. Place your first one from the shop.</p>
+                <p-button label="Browse the shop" icon="pi pi-shopping-bag" [text]="true" (click)="newOrder()" />
+              } @else {
+                <p>No orders match this filter.</p>
+              }
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-order>
+        <tr class="row" tabindex="0" (click)="view(order.id)" (keydown.enter)="view(order.id)">
+          <td>
+            <div class="order-cell">
+              <div class="covers" aria-hidden="true">
+                @for (item of covers(order.items); track item.productId) {
+                  <img [src]="item.imageUrl" alt="" loading="lazy" width="34" height="34" />
+                }
+              </div>
+              <span class="mono order-id" [pTooltip]="order.id" tooltipPosition="top">{{ order.id | slice:0:8 }}</span>
+            </div>
+          </td>
+          <td class="col-customer">{{ order.username }}</td>
+          <td><p-tag [value]="order.status | statusLabel" [severity]="getSeverity(order.status)" /></td>
+          <td class="col-date">
+            <span class="date">{{ order.createdAt | date:'MMM d, y' }}</span>
+            <span class="time muted">{{ order.createdAt | date:'HH:mm' }}</span>
+          </td>
+          <td class="col-items num">{{ totalItems(order.items) }}</td>
+          <td class="col-total num">{{ order.total | currency:'USD' }}</td>
+          <td class="col-go"><i class="pi pi-angle-right" aria-hidden="true"></i></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
 </div>

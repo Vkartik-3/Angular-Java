@@ -1,61 +1,34 @@
-# Frontend
+# Groove web app
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.8.
+Angular 21 SPA for Groove. See the [root README](../../README.md) for the full system.
 
-## Development server
+## Scripts
 
-To start a local development server, run:
+| Command | What it does |
+|---|---|
+| `npm start` | Dev server against the real gateway (proxies `/api`, see `proxy.conf.json`) |
+| `npm run start:demo` | Dev server with the in-browser simulated backend, no services needed |
+| `npm run build` | Production build into `dist/frontend` |
+| `npm run build:demo` | Demo build (the one published to GitHub Pages) |
+| `npm test -- --watch=false` | Unit tests (Vitest) |
+| `npm run e2e` | Playwright suite against the full Docker Compose stack |
 
-```bash
-ng serve
+## Build configurations
+
+- **production / development** use `environment.ts` / `environment.prod.ts`: Keycloak login, real API, SSE order updates.
+- **demo** replaces the environment with `environment.demo.ts`, which registers `demoBackendInterceptor`. Every `/api/*` request is answered by `core/demo/demo-backend.ts`, a faithful model of the gateway contract and the saga state machine. State persists in `localStorage`.
+
+## Structure
+
 ```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+src/app/
+  core/
+    auth/        Keycloak wrapper (loaded lazily), guards, token interceptor
+    demo/        Simulated backend for the demo build
+    models/      API types, saga helpers (liveness, pipeline projection)
+    services/    HTTP clients, cart state (signals)
+  pages/         orders, shop (order-create), order detail, admin
+  shared/        navbar
+  theme.ts       PrimeNG preset
+styles.scss      Design tokens and shared layout primitives
 ```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-npm run e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-
-Set `E2E_ADMIN_USERNAME`, `E2E_ADMIN_PASSWORD`, `E2E_USER_USERNAME`, and `E2E_USER_PASSWORD` in your environment using locally created Keycloak accounts before running browser tests.

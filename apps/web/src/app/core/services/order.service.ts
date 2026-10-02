@@ -1,8 +1,10 @@
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { distinctUntilChanged, Observable, switchMap, takeWhile, timer } from 'rxjs';
 import { CreateOrderRequest, OrderResponse, OrderStatus } from '../models/order.model';
 import { AuthService } from '../auth/auth.service';
+import { isSagaLive } from '../models/saga';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -30,6 +32,8 @@ export class OrderService {
   }
 
   watchOrder(id: string): Observable<OrderResponse> {
+    if (environment.demo) return this.pollOrder(id);
+
     const TERMINAL = new Set<string>([
       OrderStatus.INVENTORY_APPROVED, OrderStatus.PAYMENT_FAILED, 'PAYMENT_ROLLED_BACK'
     ]);
@@ -85,5 +89,14 @@ export class OrderService {
 
       return cleanup;
     });
+  }
+
+  /** Demo build has no SSE endpoint; poll until the saga reaches a terminal state. */
+  private pollOrder(id: string): Observable<OrderResponse> {
+    return timer(0, 400).pipe(
+      switchMap(() => this.getById(id)),
+      distinctUntilChanged((a, b) => a.history.length === b.history.length && a.status === b.status),
+      takeWhile(order => isSagaLive(order.history), true)
+    );
   }
 }

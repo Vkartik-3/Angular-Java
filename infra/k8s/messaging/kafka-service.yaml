@@ -13,7 +13,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kafka
-  namespace: shopflow
+  namespace: groove
 spec:
   clusterIP: None
   # Without this, DNS only publishes a pod once it's Ready — but Kafka can't

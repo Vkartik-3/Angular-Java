@@ -12,7 +12,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: shopflow-app
+  name: groove-app
   namespace: argocd
 spec:
   project: default
@@ -22,7 +22,7 @@ spec:
     path: infra/k8s/app
   destination:
     server: https://kubernetes.default.svc
-    namespace: shopflow
+    namespace: groove
   syncPolicy:
     automated:
       prune: true

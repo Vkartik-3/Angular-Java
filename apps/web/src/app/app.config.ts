@@ -1,19 +1,20 @@
 import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
 import { MessageService } from 'primeng/api';
-import Aura from '@primeuix/themes/aura';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
+import { GroovePreset } from './theme';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
-    providePrimeNG({ theme: { preset: Aura }, ripple: true }),
+    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
+    provideHttpClient(withInterceptors([authInterceptor, ...environment.httpInterceptors])),
+    providePrimeNG({ theme: { preset: GroovePreset, options: { darkModeSelector: false } }, ripple: true }),
     MessageService,
     provideAppInitializer(() => {
       const auth = inject(AuthService);

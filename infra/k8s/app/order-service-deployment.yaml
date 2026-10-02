@@ -1,10 +1,10 @@
-# Database credentials come from the local shopflow-secrets Secret.
+# Database credentials come from the local groove-secrets Secret.
 # POD_NAME gives each replica a unique SSE consumer group.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: order-service
-  namespace: shopflow
+  namespace: groove
 spec:
   replicas: 2
   strategy:
@@ -44,12 +44,12 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: shopflow-secrets
+                  name: groove-secrets
                   key: POSTGRES_PASSWORD
             - name: POD_NAME
               valueFrom:
