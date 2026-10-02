@@ -140,17 +140,17 @@ Every figure below was measured from this repository or its build output.
 
 ### Frontend performance
 
-Lighthouse 13, run on the production demo build served with gzip, as GitHub Pages serves it:
+Lighthouse 13, measured against the live GitHub Pages deployment:
 
 | Profile | Performance | Accessibility | Best practices | SEO | FCP | LCP | TBT | CLS |
 |---|---|---|---|---|---|---|---|---|
-| Desktop | **99** | **100** | **100** | **100** | 0.6 s | 0.9 s | 0 ms | 0.01 |
-| Mobile (slow 4G, 4× CPU) | **82** | **100** | **100** | **100** | 3.0 s | 3.9 s | 70 ms | 0.04 |
+| Desktop | **99** | **100** | **100** | **100** | 0.7 s | 0.8 s | 0 ms | 0.01 |
+| Mobile (slow 4G, 4× CPU) | **85** | **100** | **100** | **100** | 2.4 s | 3.7 s | 120 ms | 0.05 |
 
 | Bundle | Raw | Gzipped |
 |---|---|---|
-| Initial JS + CSS (production) | 560 kB | **134 kB** |
-| Initial JS + CSS (demo) | 575 kB | **138 kB** |
+| Initial JS + CSS (production) | 567 kB | **136 kB** |
+| Initial JS + CSS (demo) | 581 kB | **140 kB** |
 | Budget (fails the build) | 750 kB | — |
 
 Routes are lazy-loaded, and `keycloak-js` is loaded on demand, so it never ships in the initial bundle.

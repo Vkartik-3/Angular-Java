@@ -4,6 +4,14 @@ updates:
   - package-ecosystem: npm
     directory: /apps/web
     schedule: { interval: weekly }
+    # Angular majors need `ng update` migrations and move in lockstep; take them manually.
+    ignore:
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "primeng"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@primeuix/*"
+        update-types: ["version-update:semver-major"]
     groups:
       angular:
         patterns: ["@angular/*", "primeng", "@primeuix/*"]
