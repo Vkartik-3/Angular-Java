@@ -16,15 +16,15 @@
     <packaging>quarkus</packaging>
 
     <properties>
-        <compiler-plugin.version>3.15.0</compiler-plugin.version>
+        <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.33.1</quarkus.platform.version>
+        <quarkus.platform.version>3.39.5</quarkus.platform.version>
         <skipITs>true</skipITs>
-        <surefire-plugin.version>3.5.4</surefire-plugin.version>
+        <surefire-plugin.version>3.6.0</surefire-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -118,7 +118,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.44</version>
+            <version>1.18.48</version>
             <scope>provided</scope>
         </dependency>
 
@@ -166,7 +166,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
-                            <version>1.18.44</version>
+                            <version>1.18.48</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
