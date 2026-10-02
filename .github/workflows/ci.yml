@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -202,7 +202,7 @@ jobs:
           [ "$code" = "403" ] || { echo "::error::non-admin reached an admin endpoint (HTTP $code)"; exit 1; }
           echo "admin endpoint correctly forbidden for role 'user'"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -256,7 +256,7 @@ jobs:
           key: compiled-${{ github.sha }}
 
       - name: Set up Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
