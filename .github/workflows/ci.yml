@@ -273,7 +273,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push order-service
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend/order-service
           file: backend/order-service/src/main/docker/Dockerfile.jvm
@@ -283,7 +283,7 @@ jobs:
             ghcr.io/vkartik-3/angular-java/order-service:${{ github.sha }}
 
       - name: Build and push payment-service
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend/payment-service
           file: backend/payment-service/src/main/docker/Dockerfile.jvm
@@ -293,7 +293,7 @@ jobs:
             ghcr.io/vkartik-3/angular-java/payment-service:${{ github.sha }}
 
       - name: Build and push inventory-service
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend/inventory-service
           file: backend/inventory-service/src/main/docker/Dockerfile.jvm
@@ -303,7 +303,7 @@ jobs:
             ghcr.io/vkartik-3/angular-java/inventory-service:${{ github.sha }}
 
       - name: Build and push gateway
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend/gateway
           file: backend/gateway/src/main/docker/Dockerfile.jvm
@@ -313,7 +313,7 @@ jobs:
             ghcr.io/vkartik-3/angular-java/gateway:${{ github.sha }}
 
       - name: Build and push frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: apps/web
           file: apps/web/Dockerfile
@@ -323,7 +323,7 @@ jobs:
             ghcr.io/vkartik-3/angular-java/frontend:${{ github.sha }}
 
       - name: Build and push product-service
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend/product-service
           file: backend/product-service/Dockerfile
