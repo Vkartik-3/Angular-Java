@@ -12,6 +12,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@primeuix/*"
         update-types: ["version-update:semver-major"]
+      # TypeScript and Vitest majors are dictated by Angular's supported ranges.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
     groups:
       angular:
         patterns: ["@angular/*", "primeng", "@primeuix/*"]
